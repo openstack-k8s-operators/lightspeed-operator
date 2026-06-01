@@ -219,10 +219,12 @@ openstack-lightspeed-deploy: ## Deploy using a catalog image.
 	oc apply -f $(OUTPUT_DIR)/rhosls
 	bash scripts/confirm-rhosls-running.sh
 
-# Deploy using the catalog image.
+# Undeploy using the catalog image.
+# Remove OpenStackLightspeds so the namespace deletion doesn't get stuck
 .PHONY: openstack-lightspeed-undeploy
 openstack-lightspeed-undeploy: export OUTPUT_DIR = out
 openstack-lightspeed-undeploy: ## Undeploy using a catalog image.
+	oc delete openstacklightspeed --all -n openstack-lightspeed --ignore-not-found=true --timeout=120s
 	find out/{catalog,rhosls} -name "*.yaml" -printf " -f %p" | xargs oc delete --ignore-not-found=true
 
 CATALOG_NAME ?= openstack-lightspeed-catalog
@@ -298,6 +300,20 @@ kuttl-test-ocp: IMG = $(OCP_INTERNAL_REGISTRY)/$(OCP_REGISTRY_NAMESPACE)/operato
 kuttl-test-ocp: BUNDLE_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-bundle:$(TAG)
 kuttl-test-ocp: CATALOG_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-catalog:$(TAG)
 kuttl-test-ocp: docker-build bundle bundle-build ocp-catalog-build ocp-registry-push kuttl-test-run
+
+.PHONY: ocp-deploy
+ocp-deploy: IMG = $(OCP_INTERNAL_REGISTRY)/$(OCP_REGISTRY_NAMESPACE)/operator:latest
+ocp-deploy: BUNDLE_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-bundle:$(TAG)
+ocp-deploy: CATALOG_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-catalog:$(TAG)
+ocp-deploy: docker-build bundle bundle-build ocp-catalog-build ocp-registry-push openstack-lightspeed-deploy ## Build, push, and deploy the operator on an OCP cluster.
+
+.PHONY: ocp-deploy-cleanup
+ocp-deploy-cleanup: IMG = $(OCP_INTERNAL_REGISTRY)/$(OCP_REGISTRY_NAMESPACE)/operator:latest
+ocp-deploy-cleanup: BUNDLE_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-bundle:$(TAG)
+ocp-deploy-cleanup: CATALOG_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-catalog:$(TAG)
+ocp-deploy-cleanup: openstack-lightspeed-undeploy ## Clean up everything created by ocp-deploy.
+	oc delete imagestreamtag operator-catalog:$(TAG) -n openshift-marketplace --ignore-not-found=true
+	oc delete namespace $(OCP_REGISTRY_NAMESPACE) --ignore-not-found=true --wait
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary
