@@ -1,0 +1,67 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+
+      # Wait for the CRD to be fully removed
+      echo "Waiting for OpenStackControlPlane CRD to be deleted..."
+      for i in $(seq 1 30); do
+        if ! oc get crd openstackcontrolplanes.core.openstack.org 2>/dev/null; then
+          echo "CRD deleted"
+          break
+        fi
+        if [ "$i" -eq 30 ]; then
+          echo "ERROR: CRD still exists after timeout"
+          exit 1
+        fi
+        sleep 2
+      done
+
+      # Wait for the operator to reconcile and reset OpenStackReady
+      echo "Waiting for status.openStackReady to become false..."
+      for i in $(seq 1 60); do
+        READY=$(oc get openstacklightspeed openstack-lightspeed \
+          -n openstack-lightspeed \
+          -o jsonpath='{.status.openStackReady}' 2>/dev/null || true)
+        # Empty or "false" both mean not ready (bool defaults to false when omitted)
+        if [ "$READY" != "true" ]; then
+          echo "OpenStackReady is false (value: '${READY}')"
+          break
+        fi
+        if [ "$i" -eq 60 ]; then
+          echo "ERROR: Timed out waiting for status.openStackReady=false"
+          oc get openstacklightspeed openstack-lightspeed -n openstack-lightspeed -o yaml
+          exit 1
+        fi
+        sleep 5
+      done
+
+      # Verify MCP config has OpenStack disabled
+      echo "Checking MCP config for openstack disabled..."
+      MCP_DATA=$(oc get configmap mcp-config \
+        -n openstack-lightspeed \
+        -o jsonpath='{.data.config\.yaml}')
+
+      OPENSTACK_LINE=$(echo "$MCP_DATA" | grep -A1 "^openstack:" | grep "enabled:")
+      if ! echo "$OPENSTACK_LINE" | grep -q "false"; then
+        echo "ERROR: Expected openstack enabled: false in MCP config"
+        echo "MCP config:"
+        echo "$MCP_DATA"
+        exit 1
+      fi
+
+      # Verify the operator is still healthy (Ready condition)
+      CONDITION=$(oc get openstacklightspeed openstack-lightspeed \
+        -n openstack-lightspeed \
+        -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')
+      if [ "$CONDITION" != "True" ]; then
+        echo "ERROR: Operator is not Ready after CRD removal"
+        oc get openstacklightspeed openstack-lightspeed -n openstack-lightspeed -o yaml
+        exit 1
+      fi
+
+      echo "OK: Operator recovered from CRD removal, MCP running without OpenStack"
+    timeout: 360

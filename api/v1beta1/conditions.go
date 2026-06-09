@@ -27,6 +27,10 @@ const (
 	// OpenShift Lightspeed Operator Status=True condition which indicates if OpenShift Lightspeed is installed and
 	// operational and it can be used by OpenStack Lightspeed operator.
 	OpenShiftLightspeedOperatorReadyCondition condition.Type = "OpenShiftLightspeedOperatorReady"
+
+	// OpenStackLightspeedMCPServerReadyCondition is set to True when the MCP server
+	// deployment succeeds. False indicates a failure during MCP server deployment.
+	OpenStackLightspeedMCPServerReadyCondition condition.Type = "OpenStackLightspeedMCPServerReady"
 )
 
 // Common Messages used by API objects.
@@ -45,6 +49,15 @@ const (
 
 	// OpenShiftLightspeedOperatorReady
 	OpenShiftLightspeedOperatorReady = "OpenShift Lightspeed operator is ready."
+
+	// OpenStackLightspeedMCPServerInitMessage
+	OpenStackLightspeedMCPServerInitMessage = "MCP server deployment has not resolved"
+
+	// OpenStackLightspeedMCPServerDeployed
+	OpenStackLightspeedMCPServerDeployed = "MCP server is ready"
+
+	// OpenStackLightspeedMCPServerWaitingOpenStack
+	OpenStackLightspeedMCPServerWaitingOpenStack = "MCP server deployed, waiting for OpenStackControlPlane to become ready"
 
 	// DeploymentCheckFailedMessage
 	DeploymentCheckFailedMessage = "Failed to check deployment status: %s"

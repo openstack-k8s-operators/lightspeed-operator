@@ -1,0 +1,24 @@
+---
+ip: 127.0.0.1
+port: 8080
+debug: false
+workers: 1
+processes_pool_size: 10
+
+openstack:
+  enabled: {{ .OpenStackEnabled }}
+  allow_write: false
+  ca_cert: ./tls-ca-bundle.pem
+  insecure: false
+
+openshift:
+  enabled: {{ .OpenShiftEnabled }}
+  allow_write: false
+  insecure: false
+
+mcp_transport_security:
+  enable_dns_rebinding_protection: true
+  allowed_hosts:
+    - "127.0.0.1:*"
+    - "localhost:*"
+  allowed_origins: []

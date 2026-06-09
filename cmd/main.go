@@ -22,13 +22,17 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync/atomic"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -62,6 +66,8 @@ func init() {
 	utilruntime.Must(consolev1.AddToScheme(scheme))
 
 	utilruntime.Must(openshiftv1.AddToScheme(scheme))
+
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -154,7 +160,15 @@ func main() {
 		setupLog.Info(fmt.Sprintf("openstack-lightspeed operator watches %s namespace", namespace))
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	cfg := ctrl.GetConfigOrDie()
+
+	kclient, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		setupLog.Error(err, "unable to create kubernetes client")
+		os.Exit(1)
+	}
+
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:                 scheme,
 		Metrics:                metricsServerOptions,
 		WebhookServer:          webhookServer,
@@ -184,9 +198,14 @@ func main() {
 	// Defaults for OpenStackLightspeed
 	apiv1beta1.SetupDefaults()
 
+	dynamicWatchCRDs := getDynamicWatchCRDs()
+
 	if err = (&controller.OpenStackLightspeedReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:          mgr.GetClient(),
+		Kclient:         kclient,
+		Scheme:          mgr.GetScheme(),
+		Cache:           mgr.GetCache(),
+		DynamicWatchCRD: dynamicWatchCRDs,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "OpenStackLightspeed")
 		os.Exit(1)
@@ -223,4 +242,22 @@ func getWatchNamespaces() ([]string, error) {
 	}
 
 	return strings.Split(ns, ","), nil
+}
+
+// getDynamicWatchCRDs returns a map of GroupVersionKind to *atomic.Bool
+// representing resources that should be watched dynamically. The watch starts
+// once they appear in the cluster for the first time (not required at operator
+// start time).
+//
+// The OpenStackControlPlane GVK is hard-coded here to avoid pulling in the
+// openstack-operator/api dependency (which is pinned to an older k8s version).
+// The CRD is watched using unstructured types, so the Go type is not needed.
+func getDynamicWatchCRDs() map[schema.GroupVersionKind]*atomic.Bool {
+	return map[schema.GroupVersionKind]*atomic.Bool{
+		{
+			Group:   "core.openstack.org",
+			Version: "v1beta1",
+			Kind:    "OpenStackControlPlane",
+		}: new(atomic.Bool),
+	}
 }

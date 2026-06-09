@@ -42,6 +42,14 @@ metadata:
   name: lightspeed-stack-config
   namespace: openstack-lightspeed
 
+# MCP server resources should be gone
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mcp-config
+  namespace: openstack-lightspeed
+
 # Console Plugin resources should be gone
 ---
 apiVersion: apps/v1

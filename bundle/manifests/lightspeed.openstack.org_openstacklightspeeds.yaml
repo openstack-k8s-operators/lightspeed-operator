@@ -234,6 +234,11 @@ spec:
                   for this object.
                 format: int64
                 type: integer
+              openStackReady:
+                description: |-
+                  OpenStackReady indicates whether an OpenStackControlPlane was detected and
+                  is ready. When true, the OpenStack MCP tools are included in lightspeed-stack config.
+                type: boolean
             type: object
         type: object
     served: true

@@ -33,6 +33,11 @@ import (
 //go:embed assets/system_prompt.txt
 var systemPrompt string
 
+// mcpServerConfigTemplate stores the embedded config template for the MCP server.
+//
+//go:embed assets/mcp_server_config.yaml.tmpl
+var mcpServerConfigTemplate string
+
 // getSystemPrompt returns the OpenStackLightspeed system prompt
 func getSystemPrompt() string {
 	return systemPrompt
@@ -217,8 +222,32 @@ func buildOKPConfig(ctx context.Context, h *common_helper.Helper, instance *apiv
 	}
 }
 
+// buildLCoreMCPServersConfig generates the mcp_servers section for lightspeed-stack config.
+// The OpenShift MCP (rhos-ocp-tools) is always included.
+// The OpenStack MCP (rhos-osp-tools) is only included when openStackReady is true.
+func buildLCoreMCPServersConfig(openStackReady bool) []interface{} {
+	mcpServers := []interface{}{
+		map[string]interface{}{
+			"name": "rhos-ocp-tools",
+			"url":  fmt.Sprintf("%s/openshift/", GetMCPServerURL()),
+			"authorization_headers": map[string]interface{}{
+				"OCP_TOKEN": "kubernetes",
+			},
+		},
+	}
+
+	if openStackReady {
+		mcpServers = append(mcpServers, map[string]interface{}{
+			"name": "rhos-osp-tools",
+			"url":  fmt.Sprintf("%s/openstack/", GetMCPServerURL()),
+		})
+	}
+
+	return mcpServers
+}
+
 // buildLCoreConfigYAML assembles the complete Lightspeed Core Service configuration and converts to YAML.
-// NOTE: MCP servers, quota handlers, and tools approval features are disabled for OpenStack Lightspeed.
+// NOTE: quota handlers, and tools approval features are disabled for OpenStack Lightspeed.
 func buildLCoreConfigYAML(ctx context.Context, h *common_helper.Helper, instance *apiv1beta1.OpenStackLightspeed) (string, error) {
 
 	ragInline := []interface{}{"okp"}
@@ -239,6 +268,7 @@ func buildLCoreConfigYAML(ctx context.Context, h *common_helper.Helper, instance
 		"conversation_cache":   buildLCoreConversationCacheConfig(h, instance),
 		"byok_rag":             []interface{}{},
 		"rag":                  ragConfig,
+		"mcp_servers":          buildLCoreMCPServersConfig(instance.Status.OpenStackReady),
 	}
 
 	config["okp"] = buildOKPConfig(ctx, h, instance)

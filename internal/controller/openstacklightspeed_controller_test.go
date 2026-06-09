@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"sync/atomic"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -77,6 +78,9 @@ var _ = Describe("OpenStackLightspeed Controller", func() {
 			controllerReconciler := &OpenStackLightspeedReconciler{
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
+				DynamicWatchCRD: DynamicWatchCRD{
+					OpenStackControlPlaneGVK(): new(atomic.Bool),
+				},
 			}
 
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
