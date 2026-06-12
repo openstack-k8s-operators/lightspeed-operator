@@ -1,0 +1,12 @@
+---
+apiVersion: keystone.openstack.org/v1beta1
+kind: KeystoneApplicationCredential
+metadata:
+  name: lightspeed
+  namespace: openstack
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: lightspeed-password
+  namespace: openstack

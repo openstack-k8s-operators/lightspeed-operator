@@ -5,3 +5,6 @@ delete:
   - apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     name: openstackcontrolplanes.core.openstack.org
+  - apiVersion: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: keystoneapplicationcredentials.keystone.openstack.org

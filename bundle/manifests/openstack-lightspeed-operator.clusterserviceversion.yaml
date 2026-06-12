@@ -25,7 +25,7 @@ metadata:
       ]
     capabilities: Basic Install
     categories: AI/Machine Learning
-    createdAt: "2026-07-13T09:32:13Z"
+    createdAt: "2026-07-13T15:45:52Z"
     description: AI-powered virtual assistant for Red Hat OpenStack Services on OpenShift
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -169,9 +169,26 @@ spec:
           - ""
           resources:
           - configmaps
-          - secrets
           verbs:
           - get
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - create
+          - get
+          - update
+        - apiGroups:
+          - ""
+          resourceNames:
+          - lightspeed-password
+          resources:
+          - secrets
+          verbs:
+          - delete
+          - get
+          - update
         - apiGroups:
           - ""
           resourceNames:
@@ -216,6 +233,24 @@ spec:
           - get
           - list
           - watch
+        - apiGroups:
+          - keystone.openstack.org
+          resources:
+          - keystoneapplicationcredentials
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - keystone.openstack.org
+          resources:
+          - keystoneapplicationcredentials/status
+          verbs:
+          - get
         - apiGroups:
           - lightspeed.openstack.org
           resources:

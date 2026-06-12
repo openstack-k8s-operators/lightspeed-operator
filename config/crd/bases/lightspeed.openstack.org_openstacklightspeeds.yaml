@@ -187,6 +187,11 @@ spec:
           status:
             description: OpenStackLightspeedStatus defines the observed state of OpenStackLightspeed
             properties:
+              applicationCredentialSecret:
+                description: |-
+                  ApplicationCredentialSecret is the name of the current AC secret in the
+                  OpenStack namespace. Tracked for rotation detection.
+                type: string
               conditions:
                 description: Conditions
                 items:

@@ -1,0 +1,10 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+# Script: simulates a Keystone operator reconciliation loop, no kuttl equivalent
+commands:
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+      ../../common/mock-openstack/simulate-keystone-operator.sh
+    timeout: 180

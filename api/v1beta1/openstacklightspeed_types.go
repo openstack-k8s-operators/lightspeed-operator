@@ -213,6 +213,11 @@ type OpenStackLightspeedStatus struct {
 	// OpenStackReady indicates whether an OpenStackControlPlane was detected and
 	// is ready. When true, the OpenStack MCP tools are included in lightspeed-stack config.
 	OpenStackReady bool `json:"openStackReady,omitempty"`
+
+	// +optional
+	// ApplicationCredentialSecret is the name of the current AC secret in the
+	// OpenStack namespace. Tracked for rotation detection.
+	ApplicationCredentialSecret string `json:"applicationCredentialSecret,omitempty"`
 }
 
 // +kubebuilder:object:root=true

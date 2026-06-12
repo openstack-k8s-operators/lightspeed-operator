@@ -83,11 +83,20 @@ func (r *OpenStackLightspeedReconciler) GetLogger(ctx context.Context) logr.Logg
 // +kubebuilder:rbac:groups=operators.coreos.com,resources=clusterserviceversions,verbs=get;list;watch
 // +kubebuilder:rbac:groups=operators.coreos.com,resources=clusterserviceversions,namespace=openstack-lightspeed,verbs=update;patch;delete
 // +kubebuilder:rbac:groups=config.openshift.io,resources=clusterversions,verbs=get;list;watch
+// SAR role escalation: the operator creates a ClusterRole granting pull-secret GET,
+// so it must hold that permission itself (K8s RBAC escalation prevention).
 // +kubebuilder:rbac:groups="",resources=secrets,resourceNames=pull-secret,verbs=get
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get
+// Cross-namespace secrets: GET reads OSCP secrets (CA bundle, clouds.yaml, secure.yaml needed to create user);
+// CREATE creates lightspeed-password in the OSCP namespace (resourceNames can't restrict create);
+// UPDATE adds/removes finalizers on the AC secret (dynamic name set by keystone-operator).
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;create;update
+// lightspeed-password lifecycle: update credentials on rotation, delete on CR teardown.
+// +kubebuilder:rbac:groups="",resources=secrets,resourceNames=lightspeed-password,verbs=get;update;delete
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get
 // +kubebuilder:rbac:groups=core.openstack.org,resources=openstackcontrolplanes,verbs=get;list;watch
+// +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneapplicationcredentials,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneapplicationcredentials/status,verbs=get
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,namespace=openstack-lightspeed,verbs=get;list;watch;create;patch;update
 // +kubebuilder:rbac:groups=apps,resources=deployments,namespace=openstack-lightspeed,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=configmaps,namespace=openstack-lightspeed,verbs=get;list;watch;create;patch;update;delete
@@ -159,13 +168,26 @@ func (r *OpenStackLightspeedReconciler) Reconcile(ctx context.Context, req ctrl.
 			return
 		}
 
-		// Poll for cross-namespace OpenStackControlPlane discovery — the
-		// cache-based watch only covers the operator's namespace, so
-		// periodic reconciliation discovers OSCP instances elsewhere.
-		// Once OpenStack is detected and configured, the watch handles updates.
-		oscpWatch := r.DynamicWatchCRD[OpenStackControlPlaneGVK()]
-		if oscpWatch != nil && oscpWatch.Load() && !instance.Status.OpenStackReady && result.RequeueAfter == 0 {
-			result.RequeueAfter = ResourceCreationTimeout
+		// Poll when any dynamically watched CRD is missing, or when
+		// rhos_mcps is enabled — the cache-based watch only covers
+		// the operator namespace, so polling detects cross-namespace
+		// OpenStackControlPlane changes (readiness, CA rotations, etc.).
+		if result.RequeueAfter == 0 {
+			needsPoll := false
+			for _, seen := range r.DynamicWatchCRD {
+				if !seen.Load() {
+					needsPoll = true
+					break
+				}
+			}
+			if !needsPoll {
+				if enabled, _ := isRHOSMCPEnabled(instance); enabled {
+					needsPoll = true
+				}
+			}
+			if needsPoll {
+				result.RequeueAfter = ResourceCreationTimeout
+			}
 		}
 	}()
 
@@ -249,6 +271,10 @@ func (r *OpenStackLightspeedReconciler) reconcileDelete(
 	// Execute deletion tasks in order (fail-fast: stop on first error)
 	if err := ReconcileTasksFailFast(helper, ctx, instance, deletionTasks); err != nil {
 		Log.Error(err, "failed to delete cluster-scoped resources")
+		return err
+	}
+
+	if err := r.reconcileDeleteOpenStackResources(ctx, helper, instance); err != nil {
 		return err
 	}
 
@@ -350,7 +376,17 @@ func (r *OpenStackLightspeedReconciler) SetupWithManager(mgr ctrl.Manager) error
 		Watches(
 			&apiextensionsv1.CustomResourceDefinition{},
 			handler.EnqueueRequestsFromMapFunc(r.NotifyAllOpenStackLightspeeds),
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+			builder.WithPredicates(
+				predicate.ResourceVersionChangedPredicate{},
+				predicate.NewPredicateFuncs(func(obj client.Object) bool {
+					for gvk := range r.DynamicWatchCRD {
+						if obj.GetName() == GetCRDName(gvk) {
+							return true
+						}
+					}
+					return false
+				}),
+			),
 		).
 		Build(r)
 	if err != nil {

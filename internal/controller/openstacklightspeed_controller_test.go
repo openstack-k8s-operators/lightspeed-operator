@@ -79,7 +79,8 @@ var _ = Describe("OpenStackLightspeed Controller", func() {
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
 				DynamicWatchCRD: DynamicWatchCRD{
-					OpenStackControlPlaneGVK(): new(atomic.Bool),
+					OpenStackControlPlaneGVK():         new(atomic.Bool),
+					KeystoneApplicationCredentialGVK(): new(atomic.Bool),
 				},
 			}
 

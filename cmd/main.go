@@ -259,5 +259,10 @@ func getDynamicWatchCRDs() map[schema.GroupVersionKind]*atomic.Bool {
 			Version: "v1beta1",
 			Kind:    "OpenStackControlPlane",
 		}: new(atomic.Bool),
+		{
+			Group:   "keystone.openstack.org",
+			Version: "v1beta1",
+			Kind:    "KeystoneApplicationCredential",
+		}: new(atomic.Bool),
 	}
 }

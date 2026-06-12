@@ -238,7 +238,7 @@ func buildLCorePodTemplateSpec(h *common_helper.Helper, ctx context.Context, ins
 	}
 
 	// Build configmap resource version annotations for change detection
-	annotations, err := buildConfigMapAnnotations(h, ctx)
+	annotations, err := buildConfigMapAnnotations(h, ctx, instance)
 	if err != nil {
 		return corev1.PodTemplateSpec{}, err
 	}
@@ -803,7 +803,7 @@ func getOGXLogLevel(instance *apiv1beta1.OpenStackLightspeed) string {
 
 // buildConfigMapAnnotations builds annotations with configmap resource versions
 // so that changes to the configmaps trigger a deployment rollout.
-func buildConfigMapAnnotations(h *common_helper.Helper, ctx context.Context) (map[string]string, error) {
+func buildConfigMapAnnotations(h *common_helper.Helper, ctx context.Context, instance *apiv1beta1.OpenStackLightspeed) (map[string]string, error) {
 	annotations := make(map[string]string)
 
 	lcoreVersion, err := getConfigMapResourceVersion(ctx, h, LCoreConfigCmName, h.GetBeforeObject().GetNamespace())
@@ -861,31 +861,37 @@ func buildConfigMapAnnotations(h *common_helper.Helper, ctx context.Context) (ma
 		annotations[MCPConfigMapResourceVersionAnnotation] = mcpVersion
 	}
 
-	cloudsVersion, err := getConfigMapResourceVersion(ctx, h, CloudsYAMLConfigMapName, h.GetBeforeObject().GetNamespace())
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return nil, fmt.Errorf("failed to get clouds.yaml configmap resource version: %w", err)
+	// OpenStack-specific resources are only mounted when OpenStackReady is
+	// true (via addMCPVolumesAndMounts). Tracking their ResourceVersion
+	// when they're not mounted would cause unnecessary pod rollouts if
+	// they get created before OpenStackReady transitions to true.
+	if instance.Status.OpenStackReady {
+		cloudsVersion, err := getConfigMapResourceVersion(ctx, h, CloudsYAMLConfigMapName, h.GetBeforeObject().GetNamespace())
+		if err != nil {
+			if !errors.IsNotFound(err) {
+				return nil, fmt.Errorf("failed to get clouds.yaml configmap resource version: %w", err)
+			}
+		} else {
+			annotations[CloudsYAMLConfigMapVersionAnnotation] = cloudsVersion
 		}
-	} else {
-		annotations[CloudsYAMLConfigMapVersionAnnotation] = cloudsVersion
-	}
 
-	secureVersion, err := getSecretResourceVersion(ctx, h, SecureYAMLSecretName, h.GetBeforeObject().GetNamespace())
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return nil, fmt.Errorf("failed to get secure.yaml secret resource version: %w", err)
+		secureVersion, err := getSecretResourceVersion(ctx, h, SecureYAMLSecretName, h.GetBeforeObject().GetNamespace())
+		if err != nil {
+			if !errors.IsNotFound(err) {
+				return nil, fmt.Errorf("failed to get secure.yaml secret resource version: %w", err)
+			}
+		} else {
+			annotations[SecureYAMLSecretVersionAnnotation] = secureVersion
 		}
-	} else {
-		annotations[SecureYAMLSecretVersionAnnotation] = secureVersion
-	}
 
-	caBundleSecretVersion, err := getSecretResourceVersion(ctx, h, CombinedCABundleSecretName, h.GetBeforeObject().GetNamespace())
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return nil, fmt.Errorf("failed to get CA bundle secret resource version: %w", err)
+		caBundleSecretVersion, err := getSecretResourceVersion(ctx, h, CombinedCABundleSecretName, h.GetBeforeObject().GetNamespace())
+		if err != nil {
+			if !errors.IsNotFound(err) {
+				return nil, fmt.Errorf("failed to get CA bundle secret resource version: %w", err)
+			}
+		} else {
+			annotations[CombinedCABundleSecretVersionAnnotation] = caBundleSecretVersion
 		}
-	} else {
-		annotations[CombinedCABundleSecretVersionAnnotation] = caBundleSecretVersion
 	}
 
 	return annotations, nil

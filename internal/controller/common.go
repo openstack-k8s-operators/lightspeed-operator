@@ -291,6 +291,15 @@ func OpenStackControlPlaneGVK() schema.GroupVersionKind {
 	}
 }
 
+// KeystoneApplicationCredentialGVK returns the GroupVersionKind for KeystoneApplicationCredential.
+func KeystoneApplicationCredentialGVK() schema.GroupVersionKind {
+	return schema.GroupVersionKind{
+		Group:   KeystoneApplicationCredentialGroup,
+		Version: KeystoneApplicationCredentialVersion,
+		Kind:    KeystoneApplicationCredentialKind,
+	}
+}
+
 // IsDynamicCRDWatched reports whether a controller-runtime watch is currently
 // registered for the given GVK. The flag is reset to false when a CRD is
 // removed and its broken informer is cleaned up. This does NOT indicate

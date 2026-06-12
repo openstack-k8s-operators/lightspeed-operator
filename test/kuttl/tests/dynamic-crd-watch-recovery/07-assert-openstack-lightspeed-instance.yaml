@@ -1,44 +1,25 @@
 ---
+apiVersion: lightspeed.openstack.org/v1beta1
+kind: OpenStackLightspeed
+metadata:
+  name: openstack-lightspeed
+  namespace: openstack-lightspeed
+status:
+  openStackReady: true
+---
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
+timeout: 360
+# Script: kuttl YAML asserts match resource structure, not string content within data fields
 commands:
   - script: |
       #!/bin/bash
       set -euo pipefail
-
-      # This is the critical assertion: after CRD removal and recreation,
-      # the operator must re-register the watch and detect the new OSCP instance.
-      echo "Waiting for status.openStackReady=true after CRD recreation (proves watch recovery)..."
-      for i in $(seq 1 60); do
-        READY=$(oc get openstacklightspeed openstack-lightspeed \
-          -n openstack-lightspeed \
-          -o jsonpath='{.status.openStackReady}' 2>/dev/null || true)
-        if [ "$READY" = "true" ]; then
-          echo "OpenStackReady is true - watch recovery confirmed!"
-          break
-        fi
-        if [ "$i" -eq 60 ]; then
-          echo "ERROR: Timed out waiting for status.openStackReady=true"
-          echo "The operator failed to recover the watch after CRD recreation"
-          oc get openstacklightspeed openstack-lightspeed -n openstack-lightspeed -o yaml
-          exit 1
-        fi
-        sleep 5
-      done
-
-      # Verify MCP config has OpenStack enabled again
-      echo "Checking MCP config for openstack enabled..."
-      MCP_DATA=$(oc get configmap mcp-config \
-        -n openstack-lightspeed \
+      MCP_DATA=$(oc get configmap mcp-config -n openstack-lightspeed \
         -o jsonpath='{.data.config\.yaml}')
-
-      OPENSTACK_LINE=$(echo "$MCP_DATA" | grep -A1 "^openstack:" | grep "enabled:")
-      if ! echo "$OPENSTACK_LINE" | grep -q "true"; then
-        echo "ERROR: Expected openstack enabled: true in MCP config after recovery"
-        echo "MCP config:"
+      ENABLED=$(echo "$MCP_DATA" | grep -A1 "openstack:" | grep "enabled:" | tr -d ' ')
+      if [ "$ENABLED" != "enabled:true" ]; then
+        echo "ERROR: MCP config does not have openstack enabled"
         echo "$MCP_DATA"
         exit 1
       fi
-
-      echo "OK: Watch recovery verified - operator detected OpenStack after CRD recreation"
-    timeout: 360
