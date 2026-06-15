@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"text/template"
 
+	"github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	common_helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -113,6 +114,38 @@ func GetMCPServerURL() string {
 // ---------------------------------------------------------------------------
 // Reconciliation
 // ---------------------------------------------------------------------------
+
+// ReconcileMCPServerTask reconciles the MCP server as a ReconcileFunc.
+func (r *OpenStackLightspeedReconciler) ReconcileMCPServerTask(h *common_helper.Helper, ctx context.Context, instance *apiv1beta1.OpenStackLightspeed) error {
+	rhosMCPEnabled, err := isRHOSMCPEnabled(instance)
+	if err != nil {
+		return fmt.Errorf("failed to parse dev config: %w", err)
+	}
+	if rhosMCPEnabled {
+		openStackReady, mcpErr := r.ReconcileMCPServer(ctx, h, instance)
+		if mcpErr != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				apiv1beta1.OpenStackLightspeedMCPServerReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				apiv1beta1.DeploymentCheckFailedMessage,
+				mcpErr.Error(),
+			))
+			return mcpErr
+		}
+		instance.Status.OpenStackReady = openStackReady
+	} else {
+		if err := r.cleanupMCPResources(ctx, h, instance); err != nil {
+			return err
+		}
+		instance.Status.OpenStackReady = false
+		instance.Status.Conditions.MarkTrue(
+			apiv1beta1.OpenStackLightspeedMCPServerReadyCondition,
+			apiv1beta1.OpenStackLightspeedMCPServerDisabledMessage,
+		)
+	}
+	return nil
+}
 
 // ReconcileMCPServer performs the reconciliation of the MCP server.
 // The MCP server runs as a sidecar in the LCore pod. The OpenStack MCP tools
@@ -299,6 +332,52 @@ func extractOSCPFields(
 		configMap:          configMap,
 		caBundleSecretName: caBundleSecretName,
 	}, nil
+}
+
+// ---------------------------------------------------------------------------
+// Deletion
+// ---------------------------------------------------------------------------
+
+// cleanupMCPResources removes MCP server resources when the rhos_mcps feature
+// flag is disabled.
+func (r *OpenStackLightspeedReconciler) cleanupMCPResources(
+	ctx context.Context,
+	helper *common_helper.Helper,
+	instance *apiv1beta1.OpenStackLightspeed,
+) error {
+	log := helper.GetLogger()
+	ns := instance.Namespace
+
+	mcpCM := &corev1.ConfigMap{}
+	mcpCM.Name = MCPConfigYAMLConfigMapName
+	mcpCM.Namespace = ns
+	if err := helper.GetClient().Delete(ctx, mcpCM); err != nil && !k8s_errors.IsNotFound(err) {
+		return fmt.Errorf("failed to delete MCP config ConfigMap: %w", err)
+	}
+
+	cloudsCM := &corev1.ConfigMap{}
+	cloudsCM.Name = CloudsYAMLConfigMapName
+	cloudsCM.Namespace = ns
+	if err := helper.GetClient().Delete(ctx, cloudsCM); err != nil && !k8s_errors.IsNotFound(err) {
+		return fmt.Errorf("failed to delete openstack-config ConfigMap: %w", err)
+	}
+
+	secureSec := &corev1.Secret{}
+	secureSec.Name = SecureYAMLSecretName
+	secureSec.Namespace = ns
+	if err := helper.GetClient().Delete(ctx, secureSec); err != nil && !k8s_errors.IsNotFound(err) {
+		return fmt.Errorf("failed to delete openstack-config-secret Secret: %w", err)
+	}
+
+	caSec := &corev1.Secret{}
+	caSec.Name = CombinedCABundleSecretName
+	caSec.Namespace = ns
+	if err := helper.GetClient().Delete(ctx, caSec); err != nil && !k8s_errors.IsNotFound(err) {
+		return fmt.Errorf("failed to delete combined-ca-bundle Secret: %w", err)
+	}
+
+	log.Info("RHOS MCP resources cleaned up")
+	return nil
 }
 
 // copyObjectsToOpenStackLightspeedNamespace copies the required ConfigMaps and Secrets

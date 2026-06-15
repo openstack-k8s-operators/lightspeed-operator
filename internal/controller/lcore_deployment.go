@@ -210,26 +210,32 @@ func buildLCorePodTemplateSpec(h *common_helper.Helper, ctx context.Context, ins
 		containers = append(containers, exporterContainer)
 	}
 
-	// MCP sidecar
-	mcpMounts := []corev1.VolumeMount{}
-	addMCPVolumesAndMounts(&volumes, &mcpMounts, instance.Status.OpenStackReady)
-
-	mcpContainer := corev1.Container{
-		Name:         "rhos-mcp",
-		Image:        apiv1beta1.OpenStackLightspeedDefaultValues.MCPServerImageURL,
-		VolumeMounts: mcpMounts,
-		Resources: corev1.ResourceRequirements{
-			Requests: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse("50m"),
-				corev1.ResourceMemory: resource.MustParse("64Mi"),
-			},
-			Limits: corev1.ResourceList{
-				corev1.ResourceMemory: resource.MustParse("200Mi"),
-			},
-		},
-		ImagePullPolicy: corev1.PullIfNotPresent,
+	// MCP sidecar (only when rhos_mcps feature flag is enabled)
+	rhosMCPEnabled, err := isRHOSMCPEnabled(instance)
+	if err != nil {
+		return corev1.PodTemplateSpec{}, fmt.Errorf("failed to parse dev config: %w", err)
 	}
-	containers = append(containers, mcpContainer)
+	if rhosMCPEnabled {
+		mcpMounts := []corev1.VolumeMount{}
+		addMCPVolumesAndMounts(&volumes, &mcpMounts, instance.Status.OpenStackReady)
+
+		mcpContainer := corev1.Container{
+			Name:         "rhos-mcp",
+			Image:        apiv1beta1.OpenStackLightspeedDefaultValues.MCPServerImageURL,
+			VolumeMounts: mcpMounts,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("50m"),
+					corev1.ResourceMemory: resource.MustParse("64Mi"),
+				},
+				Limits: corev1.ResourceList{
+					corev1.ResourceMemory: resource.MustParse("200Mi"),
+				},
+			},
+			ImagePullPolicy: corev1.PullIfNotPresent,
+		}
+		containers = append(containers, mcpContainer)
+	}
 
 	// Build configmap resource version annotations for change detection
 	annotations, err := buildConfigMapAnnotations(h, ctx)

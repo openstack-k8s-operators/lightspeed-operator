@@ -18,19 +18,10 @@ metadata:
 
 # Verify CA bundle ConfigMap still exists after update
 ---
-# Verify CA bundle ConfigMap still exists after update
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: openstack-lightspeed-ca-bundle
-  namespace: openstack-lightspeed
-
-# Verify MCP config ConfigMap still exists with correct content after update
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: mcp-config
   namespace: openstack-lightspeed
 
 # Verify all operator-managed resources still exist after update

@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	common_cm "github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
@@ -163,6 +164,15 @@ func parseDevConfig(instance *apiv1beta1.OpenStackLightspeed) (apiv1beta1.DevSpe
 		}
 	}
 	return config, nil
+}
+
+// isRHOSMCPEnabled returns true if the "rhos_mcps" feature flag is present in the dev config.
+func isRHOSMCPEnabled(instance *apiv1beta1.OpenStackLightspeed) (bool, error) {
+	config, err := parseDevConfig(instance)
+	if err != nil {
+		return false, err
+	}
+	return slices.Contains(config.FeatureFlags, "rhos_mcps"), nil
 }
 
 // getOKPChunkFilterQuery returns the chunk filter query from the dev config, or a version-aware default.

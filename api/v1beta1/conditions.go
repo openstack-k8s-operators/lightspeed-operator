@@ -59,6 +59,9 @@ const (
 	// OpenStackLightspeedMCPServerWaitingOpenStack
 	OpenStackLightspeedMCPServerWaitingOpenStack = "MCP server deployed, waiting for OpenStackControlPlane to become ready"
 
+	// OpenStackLightspeedMCPServerDisabledMessage
+	OpenStackLightspeedMCPServerDisabledMessage = "RHOS MCP server is disabled (rhos_mcps feature flag not set)"
+
 	// DeploymentCheckFailedMessage
 	DeploymentCheckFailedMessage = "Failed to check deployment status: %s"
 
