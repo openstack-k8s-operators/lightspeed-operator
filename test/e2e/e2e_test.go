@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/openstack-lightspeed/operator/test/utils"
+	"github.com/openstack-k8s-operators/lightspeed-operator/test/utils"
 )
 
 const namespace = "openstack-lightspeed-operator-system"

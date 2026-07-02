@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	common_helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
-	apiv1beta1 "github.com/openstack-lightspeed/operator/api/v1beta1"
+	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
 )
 
 // ReconcileFunc is a function that reconciles a single lcore resource.

@@ -42,8 +42,8 @@ import (
 	openshiftv1 "github.com/openshift/api/operator/v1"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 
-	apiv1beta1 "github.com/openstack-lightspeed/operator/api/v1beta1"
-	"github.com/openstack-lightspeed/operator/internal/controller"
+	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
+	"github.com/openstack-k8s-operators/lightspeed-operator/internal/controller"
 	// +kubebuilder:scaffold:imports
 )
 

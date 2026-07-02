@@ -19,7 +19,7 @@ package controller
 import (
 	"strconv"
 
-	apiv1beta1 "github.com/openstack-lightspeed/operator/api/v1beta1"
+	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

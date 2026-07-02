@@ -34,7 +34,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	apiv1beta1 "github.com/openstack-lightspeed/operator/api/v1beta1"
+	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
 

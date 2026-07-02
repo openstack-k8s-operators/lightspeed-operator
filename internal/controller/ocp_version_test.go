@@ -19,7 +19,7 @@ package controller
 import (
 	"testing"
 
-	apiv1beta1 "github.com/openstack-lightspeed/operator/api/v1beta1"
+	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
 )
 
 const (
