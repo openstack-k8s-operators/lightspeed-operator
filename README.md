@@ -135,9 +135,6 @@ metadata:
   name: openstack-lightspeed
   namespace: openstack
 spec:
-$(if [ -n "$RHOS_LS_IMAGE" ]; then
-  echo "  ragImage: $RHOS_LS_IMAGE"
-fi)
   llmEndpoint: $LLM_ENDPOINT
   llmEndpointType: openai
   llmCredentials: openstack-lightspeed-apitoken

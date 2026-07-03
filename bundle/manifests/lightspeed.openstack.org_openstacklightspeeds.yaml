@@ -178,10 +178,6 @@ spec:
                       When false, uses reference_url (online).
                     type: boolean
                 type: object
-              ragImage:
-                description: ContainerImage for the OpenStack Lightspeed RAG container
-                  (will be set to environmental default if empty)
-                type: string
               tlsCACertBundle:
                 description: Configmap name containing a CA Certificates bundle
                 type: string

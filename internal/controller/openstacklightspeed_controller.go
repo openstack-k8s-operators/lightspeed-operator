@@ -159,10 +159,6 @@ func (r *OpenStackLightspeedReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, nil
 	}
 
-	if instance.Spec.RAGImage == "" {
-		instance.Spec.RAGImage = apiv1beta1.OpenStackLightspeedDefaultValues.RAGImageURL
-	}
-
 	if instance.Spec.MaxTokensForResponse == 0 {
 		instance.Spec.MaxTokensForResponse = apiv1beta1.OpenStackLightspeedDefaultValues.MaxTokensForResponse
 	}
