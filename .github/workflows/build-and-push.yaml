@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - lcore-migration
   workflow_dispatch: {}
 
 env:
