@@ -17,7 +17,7 @@ metadata:
     features.operators.openshift.io/token-auth-azure: "false"
     features.operators.openshift.io/token-auth-gcp: "false"
     operatorframework.io/suggested-namespace: openstack-lightspeed
-    repository: https://github.com/openstack-lightspeed/operator
+    repository: https://github.com/openstack-k8s-operators/lightspeed-operator
   name: openstack-lightspeed-operator.v0.0.0
   namespace: openstack-lightspeed
 spec:
@@ -155,7 +155,7 @@ spec:
   - llm
   links:
   - name: OpenStack Lightspeed Operator
-    url: https://github.com/openstack-lightspeed/operator
+    url: https://github.com/openstack-k8s-operators/lightspeed-operator
   maintainers:
   - email: lmartins@redhat.com
     name: Lucas Alvares Gomes
@@ -167,7 +167,7 @@ spec:
   minKubeVersion: 1.31.0
   provider:
     name: Red Hat
-    url: https://github.com/openstack-lightspeed/operator
+    url: https://github.com/openstack-k8s-operators/lightspeed-operator
   relatedImages:
   - image: quay.io/openstack-lightspeed/operator:latest
     name: operator

@@ -10,7 +10,7 @@ plugins:
   scorecard.sdk.operatorframework.io/v2: {}
   sdk.x-openshift.io/v1: {}
 projectName: openstack-lightspeed-operator
-repo: github.com/openstack-lightspeed/operator
+repo: github.com/openstack-k8s-operators/lightspeed-operator
 resources:
 - api:
     crdVersion: v1
@@ -19,6 +19,6 @@ resources:
   domain: openstack.org
   group: lightspeed
   kind: OpenStackLightspeed
-  path: github.com/openstack-lightspeed/operator/api/v1beta1
+  path: github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1
   version: v1beta1
 version: "3"

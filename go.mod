@@ -1,4 +1,4 @@
-module github.com/openstack-lightspeed/operator
+module github.com/openstack-k8s-operators/lightspeed-operator
 
 go 1.24.6
 
