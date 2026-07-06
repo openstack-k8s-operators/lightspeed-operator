@@ -220,12 +220,8 @@ func buildOKPConfig(ctx context.Context, h *common_helper.Helper, instance *apiv
 // buildLCoreConfigYAML assembles the complete Lightspeed Core Service configuration and converts to YAML.
 // NOTE: MCP servers, quota handlers, and tools approval features are disabled for OpenStack Lightspeed.
 func buildLCoreConfigYAML(ctx context.Context, h *common_helper.Helper, instance *apiv1beta1.OpenStackLightspeed) (string, error) {
-	okpEnabled := isOKPEnabled(instance)
 
-	ragInline := []interface{}{}
-	if okpEnabled {
-		ragInline = append(ragInline, "okp")
-	}
+	ragInline := []interface{}{"okp"}
 	ragConfig := map[string]interface{}{
 		"inline": ragInline,
 	}
@@ -245,9 +241,7 @@ func buildLCoreConfigYAML(ctx context.Context, h *common_helper.Helper, instance
 		"rag":                  ragConfig,
 	}
 
-	if okpEnabled {
-		config["okp"] = buildOKPConfig(ctx, h, instance)
-	}
+	config["okp"] = buildOKPConfig(ctx, h, instance)
 
 	// Convert to YAML
 	yamlBytes, err := yaml.Marshal(config)

@@ -18,3 +18,5 @@ spec:
     ogxLogLevel: DEBUG
     lightspeedStackLogLevel: WARNING
     dataverseExporterLogLevel: DEBUG
+  dev:
+    okpChunkFilterQuery: "product:(*openstack* OR *openshift*)"

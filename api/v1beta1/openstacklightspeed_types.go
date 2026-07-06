@@ -54,7 +54,7 @@ const (
 // May change at any time without backward compatibility.
 //
 // Supported fields:
-//   - featureFlags: list of experimental feature flags to enable (e.g. ["okp"])
+//   - featureFlags: list of experimental feature flags to enable
 //   - okpChunkFilterQuery: Solr filter query for OKP searches (default: version-aware query combining detected OpenStack and OCP versions)
 //   - okpRagOnly: when true, only OKP is used as a RAG source (default: false)
 type DevSpec struct {

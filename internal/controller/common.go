@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 
 	common_helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
@@ -140,12 +139,6 @@ func parseDevConfig(instance *apiv1beta1.OpenStackLightspeed) (apiv1beta1.DevSpe
 		}
 	}
 	return config, nil
-}
-
-// isOKPEnabled returns true if the "okp" feature flag is present in the dev config.
-func isOKPEnabled(instance *apiv1beta1.OpenStackLightspeed) bool {
-	config, _ := parseDevConfig(instance)
-	return slices.Contains(config.FeatureFlags, "okp")
 }
 
 // getOKPChunkFilterQuery returns the chunk filter query from the dev config, or a version-aware default.

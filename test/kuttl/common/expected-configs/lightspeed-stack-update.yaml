@@ -72,8 +72,13 @@ llama_stack:
   url: http://localhost:8321
   use_as_library_client: false
 name: Lightspeed Core Service (LCS)
+okp:
+  chunk_filter_query: product:(*openstack* OR *openshift*)
+  offline: true
+  rhokp_url: ${env.RH_SERVER_OKP}
 rag:
   inline:
+  - okp
   - vs_UUID
 service:
   access_log: true

@@ -1,8 +1,0 @@
-apiVersion: kuttl.dev/v1beta1
-kind: TestAssert
-commands:
-  - script: |
-      #!/bin/bash
-      set -euo pipefail
-      ../../common/expected-configs/validate-config.sh ogx_config ../../common/expected-configs/ogx_config-okp.yaml
-    timeout: 180

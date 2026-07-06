@@ -277,9 +277,7 @@ func buildInitContainers(
 				"--enable-ocp-rag", strconv.FormatBool(instance.Spec.EnableOCPRAG),
 				"--ocp-version", ocp_version,
 			}
-			if isOKPEnabled(instance) {
-				cmd = append(cmd, "--enable-okp")
-			}
+			cmd = append(cmd, "--enable-okp")
 			return cmd
 		}(),
 		SecurityContext: securityContext,
@@ -609,12 +607,10 @@ func buildLlamaStackEnvVars(h *common_helper.Helper, ctx context.Context, instan
 		Value: VectorDBVolumeMountPath,
 	})
 
-	if isOKPEnabled(instance) {
-		envVars = append(envVars, corev1.EnvVar{
-			Name:  "RH_SERVER_OKP",
-			Value: fmt.Sprintf("http://%s.%s.svc:%d", OKPServiceName, instance.GetNamespace(), OKPServicePort),
-		})
-	}
+	envVars = append(envVars, corev1.EnvVar{
+		Name:  "RH_SERVER_OKP",
+		Value: fmt.Sprintf("http://%s.%s.svc:%d", OKPServiceName, instance.GetNamespace(), OKPServicePort),
+	})
 
 	return envVars, nil
 }
@@ -643,12 +639,10 @@ func buildLightspeedStackEnvVars(instance *apiv1beta1.OpenStackLightspeed) []cor
 		},
 		buildPostgresPasswordEnvVar(),
 	}
-	if isOKPEnabled(instance) {
-		envVars = append(envVars, corev1.EnvVar{
-			Name:  "RH_SERVER_OKP",
-			Value: fmt.Sprintf("http://%s.%s.svc:%d", OKPServiceName, instance.GetNamespace(), OKPServicePort),
-		})
-	}
+	envVars = append(envVars, corev1.EnvVar{
+		Name:  "RH_SERVER_OKP",
+		Value: fmt.Sprintf("http://%s.%s.svc:%d", OKPServiceName, instance.GetNamespace(), OKPServicePort),
+	})
 	return envVars
 }
 

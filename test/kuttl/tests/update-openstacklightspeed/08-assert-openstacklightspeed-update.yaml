@@ -116,6 +116,8 @@ spec:
               value: core=debug,providers=info
             - name: VECTOR_DB_DATA_PATH
               value: /vector-db-discovered-values
+            - name: RH_SERVER_OKP
+              value: http://lightspeed-okp-server.openstack-lightspeed.svc:8080
           volumeMounts:
             - name: ca-bundle
               mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
@@ -141,6 +143,8 @@ spec:
                 secretKeyRef:
                   key: password
                   name: lightspeed-postgres-secret
+            - name: RH_SERVER_OKP
+              value: http://lightspeed-okp-server.openstack-lightspeed.svc:8080
           volumeMounts:
             - name: ca-bundle
               mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem

@@ -256,9 +256,7 @@ func buildLlamaStackVectorDB(_ *common_helper.Helper, _ *apiv1beta1.OpenStackLig
 
 func buildLlamaStackVectorIO(h *common_helper.Helper, instance *apiv1beta1.OpenStackLightspeed, chunkFilterQuery string) []interface{} {
 	providers := buildLlamaStackVectorDB(h, instance)
-	if isOKPEnabled(instance) {
-		providers = append(providers, buildOKPVectorIOProvider(chunkFilterQuery))
-	}
+	providers = append(providers, buildOKPVectorIOProvider(chunkFilterQuery))
 	return providers
 }
 
@@ -378,32 +376,28 @@ func buildLlamaStackModels(_ *common_helper.Helper, instance *apiv1beta1.OpenSta
 		}
 	}
 
-	if isOKPEnabled(instance) {
-		models = append(models, map[string]interface{}{
-			"model_id":          "solr_embedding",
-			"model_type":        "embedding",
-			"provider_id":       "sentence-transformers",
-			"provider_model_id": OKPEmbeddingModelMountPath,
-			"metadata": map[string]interface{}{
-				"embedding_dimension": 384,
-			},
-		})
-	}
+	models = append(models, map[string]interface{}{
+		"model_id":          "solr_embedding",
+		"model_type":        "embedding",
+		"provider_id":       "sentence-transformers",
+		"provider_model_id": OKPEmbeddingModelMountPath,
+		"metadata": map[string]interface{}{
+			"embedding_dimension": 384,
+		},
+	})
 
 	return models
 }
 
-func buildLlamaStackVectorStores(_ *common_helper.Helper, instance *apiv1beta1.OpenStackLightspeed) []interface{} {
-	stores := []interface{}{}
-	if isOKPEnabled(instance) {
-		stores = append(stores, map[string]interface{}{
+func buildLlamaStackVectorStores(_ *common_helper.Helper, _ *apiv1beta1.OpenStackLightspeed) []interface{} {
+	return []interface{}{
+		map[string]interface{}{
 			"vector_store_id":     "portal-rag",
 			"provider_id":         "okp_solr",
 			"embedding_dimension": 384,
 			"embedding_model":     "sentence-transformers/" + OKPEmbeddingModelMountPath,
-		})
+		},
 	}
-	return stores
 }
 
 func buildLlamaStackToolGroups(_ *common_helper.Helper, _ *apiv1beta1.OpenStackLightspeed) []interface{} {
@@ -426,11 +420,8 @@ func buildLlamaStackYAML(h *common_helper.Helper, ctx context.Context, instance 
 		return "", fmt.Errorf("failed to build inference providers: %w", err)
 	}
 
-	okpChunkFilterQuery := ""
-	if isOKPEnabled(instance) {
-		config["external_providers_dir"] = ExternalProvidersDir
-		okpChunkFilterQuery = getOKPChunkFilterQuery(ctx, h, instance)
-	}
+	config["external_providers_dir"] = ExternalProvidersDir
+	okpChunkFilterQuery := getOKPChunkFilterQuery(ctx, h, instance)
 
 	// Build providers map - only include providers for enabled APIs
 	config["providers"] = map[string]interface{}{

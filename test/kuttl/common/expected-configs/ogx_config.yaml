@@ -8,7 +8,7 @@ apis:
 benchmarks: []
 container_image: null
 datasets: []
-external_providers_dir: null
+external_providers_dir: /app-root/providers.d
 image_name: openstack-lightspeed-configuration
 inference_store:
   db_path: .llama/distributions/ollama/inference_store.db
@@ -73,6 +73,30 @@ providers:
     provider_id: faiss
     provider_type: inline::faiss
   - config:
+      chunk_window_config:
+        chunk_content_field: chunk_field
+        chunk_family_fields:
+        - headings
+        chunk_filter_query: is_chunk:true AND product:(*openstack* OR *openshift*)
+        chunk_index_field: chunk_index
+        chunk_online_source_url_field: online_source_url
+        chunk_parent_id_field: parent_id
+        chunk_source_path_field: source_path
+        chunk_token_count_field: num_tokens
+        parent_total_chunks_field: total_chunks
+        parent_total_tokens_field: total_tokens
+      collection_name: ${env.SOLR_COLLECTION:=portal-rag}
+      content_field: ${env.SOLR_CONTENT_FIELD:=chunk}
+      embedding_dimension: ${env.SOLR_EMBEDDING_DIM:=384}
+      embedding_model: sentence-transformers//vector-db-discovered-values/okp_embeddings_model
+      persistence:
+        backend: kv_default
+        namespace: portal-rag
+      solr_url: ${env.RH_SERVER_OKP}/solr
+      vector_field: ${env.SOLR_VECTOR_FIELD:=chunk_vector}
+    provider_id: okp_solr
+    provider_type: remote::solr_vector_io
+  - config:
       persistence:
         namespace: vector_io::faiss
         backend: kv_rag_UUID_os_product_docs
@@ -87,6 +111,12 @@ registered_resources:
     provider_id: openstack-lightspeed-provider
     provider_model_id: ibm-granite/granite-3.1-8b-instruct
   - metadata:
+      embedding_dimension: 384
+    model_id: solr_embedding
+    model_type: embedding
+    provider_id: sentence-transformers
+    provider_model_id: /vector-db-discovered-values/okp_embeddings_model
+  - metadata:
       embedding_dimension: 768
     model_id: sentence-transformers/all-mpnet-base-v2
     provider_id: sentence-transformers
@@ -96,6 +126,10 @@ registered_resources:
   - provider_id: rag-runtime
     toolgroup_id: builtin::rag
   vector_stores:
+  - embedding_dimension: 384
+    embedding_model: sentence-transformers//vector-db-discovered-values/okp_embeddings_model
+    provider_id: okp_solr
+    vector_store_id: portal-rag
   - embedding_dimension: 768
     embedding_model: sentence-transformers/${env.VECTOR_DB_DATA_PATH}/UUID/embeddings_model
     provider_id: os-docs-2026.1-ogx
