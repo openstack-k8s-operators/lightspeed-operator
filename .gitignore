@@ -26,3 +26,7 @@ go.work
 *.swp
 *.swo
 *~
+
+# Kuttl test files
+kubeconfig
+kuttl-report-openstack-lightspeed.xml
