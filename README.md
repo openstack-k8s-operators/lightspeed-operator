@@ -278,4 +278,6 @@ make kuttl-test-run
 
 **Important Notes:**
 - Ensure the namespace is clean before running tests to avoid resource conflicts
-or test failures.
+  or test failures.  There will be leftovers if a previous kuttl test failed.
+  Automatically clean things with `make kuttl-test-cleanup` or
+  `make kuttle-test-ocp-cleanup` depending on how you run tests.
