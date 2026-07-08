@@ -28,10 +28,10 @@ Get pull credentials (pull secret) from `https://cloud.redhat.com/openshift/crea
 and save it in `pull-secret.txt` of the current path, or you can save it anywhere
 and use the `PULL_SECRET` env var to point to it like in the next example.
 
-Deploy OpenShift CRC and attach the libvirt default interface to CRC:
+Deploy OpenShift 4.18 CRC and attach the libvirt default interface to CRC:
 
 ```bash
-PULL_SECRET=~/work/pull-secret CRC_MONITORING_ENABLED=true CPUS=12 MEMORY=25600 DISK=100 make crc
+CRC_VERSION=2.51.0 PULL_SECRET=~/work/pull-secret CRC_MONITORING_ENABLED=true CPUS=12 MEMORY=25600 DISK=100 make crc
 make crc_attach_default_interface
 eval $(crc oc-env)
 cd ../..
