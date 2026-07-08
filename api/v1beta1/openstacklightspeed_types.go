@@ -56,11 +56,11 @@ const (
 // Supported fields:
 //   - featureFlags: list of experimental feature flags to enable
 //   - okpChunkFilterQuery: Solr filter query for OKP searches (default: version-aware query combining detected OpenStack and OCP versions)
-//   - okpRagOnly: when true, only OKP is used as a RAG source (default: false)
+//   - okpRagOnly: when true, only OKP is used as a RAG source (default: true)
 type DevSpec struct {
 	FeatureFlags        []string `json:"featureFlags,omitempty"`
 	OKPChunkFilterQuery string   `json:"okpChunkFilterQuery,omitempty"`
-	OKPRagOnly          bool     `json:"okpRagOnly,omitempty"`
+	OKPRagOnly          *bool    `json:"okpRagOnly,omitempty"`
 }
 
 // OKPSpec defines configuration for the Offline Knowledge Portal (OKP).

@@ -79,7 +79,6 @@ okp:
 rag:
   inline:
   - okp
-  - vs_UUID
 service:
   access_log: true
   auth_enabled: true

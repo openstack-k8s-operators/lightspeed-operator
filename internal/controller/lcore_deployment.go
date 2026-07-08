@@ -302,7 +302,7 @@ func buildInitContainers(
 		"--lightspeed-stack-path", LightspeedStackInitContainerMountPath,
 	}
 	devConfig, _ := parseDevConfig(instance)
-	if devConfig.OKPRagOnly {
+	if devConfig.OKPRagOnly == nil || *devConfig.OKPRagOnly {
 		configBuildCmd = append(configBuildCmd, "--disable-rag-entries")
 	}
 
