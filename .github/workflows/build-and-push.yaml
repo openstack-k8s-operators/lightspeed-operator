@@ -71,8 +71,8 @@ jobs:
         uses: docker/login-action@v4
         with:
           registry: registry.redhat.io
-          username: ${{ secrets.REDHAT_REGISTRY_USERNAME }}
-          password: ${{ secrets.REDHAT_REGISTRY_PASSWORD }}
+          username: ${{ secrets.REDHATIO_USERNAME }}
+          password: ${{ secrets.REDHATIO_PASSWORD }}
 
       - name: Build operator image
         run: |
