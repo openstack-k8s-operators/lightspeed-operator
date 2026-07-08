@@ -63,7 +63,13 @@ func buildPostgresPodTemplateSpec() corev1.PodTemplateSpec {
 	volumeMounts = append(volumeMounts, corev1.VolumeMount{
 		Name:      "secret-" + PostgresBootstrapSecretName,
 		MountPath: PostgresBootstrapVolumeMountPath,
-		SubPath:   PostgresExtensionScript,
+		SubPath:   PostgresBootstrapScript,
+		ReadOnly:  true,
+	})
+	volumeMounts = append(volumeMounts, corev1.VolumeMount{
+		Name:      "secret-" + PostgresBootstrapSecretName,
+		MountPath: PostgresBootstrapSQLVolumeMountPath,
+		SubPath:   PostgresBootstrapSQLScript,
 		ReadOnly:  true,
 	})
 
@@ -120,6 +126,30 @@ func buildPostgresPodTemplateSpec() corev1.PodTemplateSpec {
 		MountPath: TmpVolumeMountPath,
 	})
 
+	envVars := []corev1.EnvVar{
+		{
+			Name:  "POSTGRESQL_DATABASE",
+			Value: PostgresLightspeedStackDbName,
+		},
+		{
+			Name:  "POSTGRESQL_LLAMA_STACK_DATABASE",
+			Value: PostgresLlamaStackDbName,
+		},
+		{
+			Name:  "POSTGRESQL_SHARED_BUFFERS",
+			Value: PostgresSharedBuffers,
+		},
+		{
+			Name:  "POSTGRESQL_MAX_CONNECTIONS",
+			Value: strconv.Itoa(PostgresMaxConnections),
+		},
+		{
+			Name:  "POSTGRESQL_BOOTSTRAP_SQL_FILE",
+			Value: PostgresBootstrapSQLVolumeMountPath,
+		},
+	}
+	envVars = append(envVars, buildPostgresCredsEnvVars()...)
+
 	return corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:      generatePostgresSelectorLabels(),
@@ -156,42 +186,7 @@ func buildPostgresPodTemplateSpec() corev1.PodTemplateSpec {
 							corev1.ResourceMemory: resource.MustParse("2Gi"),
 						},
 					},
-					Env: []corev1.EnvVar{
-						{
-							Name:  "POSTGRESQL_USER",
-							Value: PostgresDefaultUser,
-						},
-						{
-							Name:  "POSTGRESQL_DATABASE",
-							Value: PostgresDefaultDbName,
-						},
-						{
-							Name:  "POSTGRESQL_SHARED_BUFFERS",
-							Value: PostgresSharedBuffers,
-						},
-						{
-							Name:  "POSTGRESQL_MAX_CONNECTIONS",
-							Value: strconv.Itoa(PostgresMaxConnections),
-						},
-						{
-							Name: "POSTGRESQL_ADMIN_PASSWORD",
-							ValueFrom: &corev1.EnvVarSource{
-								SecretKeyRef: &corev1.SecretKeySelector{
-									LocalObjectReference: corev1.LocalObjectReference{Name: PostgresSecretName},
-									Key:                  OpenStackLightspeedComponentPasswordFileName,
-								},
-							},
-						},
-						{
-							Name: "POSTGRESQL_PASSWORD",
-							ValueFrom: &corev1.EnvVarSource{
-								SecretKeyRef: &corev1.SecretKeySelector{
-									LocalObjectReference: corev1.LocalObjectReference{Name: PostgresSecretName},
-									Key:                  OpenStackLightspeedComponentPasswordFileName,
-								},
-							},
-						},
-					},
+					Env: envVars,
 				},
 			},
 			Volumes: volumes,
@@ -203,7 +198,7 @@ func buildPostgresProbe(period, timeout, failure, initialDelay int32) *corev1.Pr
 	return &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			Exec: &corev1.ExecAction{
-				Command: []string{"pg_isready", "-U", PostgresDefaultUser, "-d", PostgresDefaultDbName},
+				Command: []string{"/bin/sh", "-c", "pg_isready -U $POSTGRESQL_USER -d $POSTGRESQL_DATABASE"},
 			},
 		},
 		InitialDelaySeconds: initialDelay,

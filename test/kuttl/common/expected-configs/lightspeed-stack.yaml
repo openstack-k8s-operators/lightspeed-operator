@@ -9,14 +9,14 @@ byok_rag:
 conversation_cache:
   postgres:
     ca_cert_path: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-    db: postgres
+    db: lightspeed-stack
     gss_encmode: disable
     host: lightspeed-postgres-server.openstack-lightspeed.svc
     namespace: conversation_cache
-    password: ${env.POSTGRES_PASSWORD}
+    password: ${env.POSTGRESQL_PASSWORD}
     port: 5432
     ssl_mode: verify-full
-    user: postgres
+    user: ${env.POSTGRESQL_USER}
   type: postgres
 customization:
   disable_query_system_prompt: true
@@ -57,14 +57,14 @@ customization:
 database:
   postgres:
     ca_cert_path: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
-    db: postgres
+    db: lightspeed-stack
     gss_encmode: disable
     host: lightspeed-postgres-server.openstack-lightspeed.svc
     namespace: lcore
-    password: ${env.POSTGRES_PASSWORD}
+    password: ${env.POSTGRESQL_PASSWORD}
     port: 5432
     ssl_mode: verify-full
-    user: postgres
+    user: ${env.POSTGRESQL_USER}
 inference:
   default_model: ibm-granite/granite-3.1-8b-instruct
   default_provider: openstack-lightspeed-provider

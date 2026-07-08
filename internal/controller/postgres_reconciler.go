@@ -98,7 +98,8 @@ func reconcilePostgresBootstrapSecret(h *common_helper.Helper, ctx context.Conte
 	result, err := controllerutil.CreateOrPatch(ctx, h.GetClient(), secret, func() error {
 		// Set bootstrap script data
 		secret.StringData = map[string]string{
-			PostgresExtensionScript: PostgresBootStrapScriptContent,
+			PostgresBootstrapScript:    PostgresBootStrapScriptContent,
+			PostgresBootstrapSQLScript: PostgresBootStrapSQLContent,
 		}
 		// Set owner reference
 		return controllerutil.SetControllerReference(h.GetBeforeObject(), secret, h.GetScheme())
@@ -137,6 +138,10 @@ func reconcilePostgresSecret(h *common_helper.Helper, ctx context.Context, _ *ap
 	}
 
 	result, err := controllerutil.CreateOrPatch(ctx, h.GetClient(), secret, func() error {
+		if secret.Data == nil {
+			secret.Data = map[string][]byte{}
+		}
+
 		// Only set password if not already present (preserve existing password)
 		if len(secret.Data) == 0 || secret.Data[OpenStackLightspeedComponentPasswordFileName] == nil {
 			// Generate random password only on first creation
@@ -149,7 +154,8 @@ func reconcilePostgresSecret(h *common_helper.Helper, ctx context.Context, _ *ap
 				OpenStackLightspeedComponentPasswordFileName: []byte(encodedPassword),
 			}
 		}
-		// Set owner reference
+
+		secret.Data[PostgresUsernameSecretKey] = []byte(PostgresSQLUsername)
 		return controllerutil.SetControllerReference(h.GetBeforeObject(), secret, h.GetScheme())
 	})
 
@@ -299,6 +305,11 @@ func reconcilePostgresDeploymentTask(h *common_helper.Helper, ctx context.Contex
 			return fmt.Errorf("%w: %v", ErrGetPostgresConfigMap, err)
 		}
 
+		currentSecretVersion, err := getSecretResourceVersion(ctx, h, PostgresSecretName, h.GetBeforeObject().GetNamespace())
+		if err != nil && !errors.IsNotFound(err) {
+			return fmt.Errorf("%w: %v", ErrGetPostgresSecret, err)
+		}
+
 		// Build the desired deployment pod spec
 		podTemplateSpec := buildPostgresPodTemplateSpec()
 
@@ -307,9 +318,10 @@ func reconcilePostgresDeploymentTask(h *common_helper.Helper, ctx context.Contex
 			podTemplateSpec.Annotations = map[string]string{}
 		}
 
-		// Store the current ConfigMap version in pod template annotations.
-		// When this changes, Kubernetes will see a pod template change and trigger a rollout.
+		// Store the current ConfigMap and Secret versions in pod template annotations.
+		// When either changes, Kubernetes will see a pod template change and trigger a rollout.
 		podTemplateSpec.Annotations[PostgresConfigMapResourceVersionAnnotation] = currentConfigMapVersion
+		podTemplateSpec.Annotations[PostgresSecretResourceVersionAnnotation] = currentSecretVersion
 
 		// Selective field updates (avoid update loops)
 		replicas := int32(1)

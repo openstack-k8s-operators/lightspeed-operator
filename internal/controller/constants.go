@@ -50,14 +50,17 @@ const (
 	PostgresConfigMapName                        = "lightspeed-postgres-conf"
 	PostgresNetworkPolicyName                    = "lightspeed-postgres-server"
 	PostgresServicePort                          = int32(5432)
-	PostgresDefaultUser                          = "postgres"
-	PostgresDefaultDbName                        = "postgres"
+	PostgresLightspeedStackDbName                = "lightspeed-stack"
+	PostgresLlamaStackDbName                     = "llamastack"
 	PostgresSharedBuffers                        = "256MB"
 	PostgresMaxConnections                       = 100
 	OpenStackLightspeedComponentPasswordFileName = "password"
-	PostgresExtensionScript                      = "create-extensions.sh"
+	PostgresUsernameSecretKey                    = "username"
+	PostgresBootstrapScript                      = "postgres_bootstrap.sh"
+	PostgresBootstrapSQLScript                   = "postgres_bootstrap.sql"
 	PostgresConfigKey                            = "postgresql.conf.sample"
-	PostgresBootstrapVolumeMountPath             = "/usr/share/container-scripts/postgresql/start/create-extensions.sh"
+	PostgresBootstrapVolumeMountPath             = "/usr/share/container-scripts/postgresql/start/postgres_bootstrap.sh"
+	PostgresBootstrapSQLVolumeMountPath          = "/usr/share/container-scripts/postgresql/start/postgres_bootstrap.sql"
 	PostgresConfigVolumeMountPath                = "/usr/share/pgsql/postgresql.conf.sample"
 	PostgresDataVolume                           = "postgres-data"
 	PostgresDataVolumeMountPath                  = "/var/lib/pgsql"
@@ -65,8 +68,14 @@ const (
 	PostgresDataPVCDefaultSize                   = "1Gi"
 	PostgresVarRunVolumeName                     = "lightspeed-postgres-var-run"
 	PostgresVarRunVolumeMountPath                = "/var/run/postgresql"
-	TmpVolumeName                                = "tmp-writable-volume"
-	TmpVolumeMountPath                           = "/tmp"
+
+	// Non-admin user that should be used by lightspeed-stack and llama-stack (OGX) to access
+	// the PostgreSQL database. This user gets created by the PostgreSQL container by setting
+	// the POSTGRESQL_USER and POSTGRESQL_PASSWORD environment variable.
+	PostgresSQLUsername = "lightspeed-app-user"
+
+	TmpVolumeName      = "tmp-writable-volume"
+	TmpVolumeMountPath = "/tmp"
 	// Health probe settings for the PostgreSQL container.
 	// Startup probe allows up to 300s for initialization (e.g. WAL recovery).
 	// Liveness uses a longer period/timeout to avoid killing a busy-but-healthy instance.
@@ -231,6 +240,7 @@ const (
 	// By recording the resource version of a ConfigMap in a Deployment, StatefulSet, or similar resource,
 	// changes to the referenced ConfigMaps can be detected and trigger rollouts or reconciliation in the operator.
 	PostgresConfigMapResourceVersionAnnotation   = "ols.openshift.io/postgres-configmap-version"
+	PostgresSecretResourceVersionAnnotation      = "ols.openshift.io/postgres-secret-version" // #nosec G101 -- annotation key, not a credential
 	VectorDBScriptsConfigMapVersionAnnotation    = "ols.openshift.io/vector-db-scripts-configmap-version"
 	LlamaStackConfigMapResourceVersionAnnotation = "ols.openshift.io/llamastack-configmap-version"
 	LCoreConfigMapResourceVersionAnnotation      = "ols.openshift.io/lcore-configmap-version"
@@ -313,6 +323,11 @@ const (
 //
 //go:embed assets/postgres_bootstrap.sh
 var PostgresBootStrapScriptContent string
+
+// PostgreSQL Bootstrap SQL - creates database, extensions, and schemas
+//
+//go:embed assets/postgres_bootstrap.sql
+var PostgresBootStrapSQLContent string
 
 // PostgreSQL Configuration - SSL and TLS settings
 //

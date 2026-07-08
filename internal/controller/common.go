@@ -82,6 +82,16 @@ func getConfigMapResourceVersion(ctx context.Context, h *common_helper.Helper, n
 	return cm.ResourceVersion, nil
 }
 
+// getSecretResourceVersion retrieves the resource version of a Secret.
+func getSecretResourceVersion(ctx context.Context, h *common_helper.Helper, name string, namespace string) (string, error) {
+	secret := &corev1.Secret{}
+	err := h.GetClient().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, secret)
+	if err != nil {
+		return "", fmt.Errorf("failed to get secret %s: %w", name, err)
+	}
+	return secret.ResourceVersion, nil
+}
+
 // providerNameToEnvVarName converts a provider name to a valid environment variable name.
 // It uppercases the string and replaces hyphens and dots with underscores.
 func providerNameToEnvVarName(providerName string) string {

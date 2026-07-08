@@ -131,14 +131,14 @@ func buildLCoreDatabaseConfig(h *common_helper.Helper, _ *apiv1beta1.OpenStackLi
 		"postgres": map[string]interface{}{
 			"host":         PostgresServiceName + "." + h.GetBeforeObject().GetNamespace() + ".svc",
 			"port":         PostgresServicePort,
-			"db":           PostgresDefaultDbName,
-			"user":         PostgresDefaultUser,
+			"db":           PostgresLightspeedStackDbName,
+			"user":         "${env.POSTGRESQL_USER}",
 			"ssl_mode":     PostgresDefaultSSLMode,
 			"gss_encmode":  "disable",
 			"ca_cert_path": CABundleMountPath,
 
 			// Environment variable substitution via llama_stack.core.stack.replace_env_vars
-			"password": "${env.POSTGRES_PASSWORD}",
+			"password": "${env.POSTGRESQL_PASSWORD}",
 
 			// Separate schema for LCore to avoid conflicts with App Server
 			"namespace": "lcore",
@@ -163,9 +163,9 @@ func buildLCoreConversationCacheConfig(h *common_helper.Helper, _ *apiv1beta1.Op
 		"postgres": map[string]interface{}{
 			"host":         PostgresServiceName + "." + h.GetBeforeObject().GetNamespace() + ".svc",
 			"port":         PostgresServicePort,
-			"db":           PostgresDefaultDbName,
-			"user":         PostgresDefaultUser,
-			"password":     "${env.POSTGRES_PASSWORD}",
+			"db":           PostgresLightspeedStackDbName,
+			"user":         "${env.POSTGRESQL_USER}",
+			"password":     "${env.POSTGRESQL_PASSWORD}",
 			"ssl_mode":     PostgresDefaultSSLMode,
 			"gss_encmode":  "disable",
 			"ca_cert_path": CABundleMountPath,

@@ -321,10 +321,9 @@ func buildLlamaStackStorage(_ *common_helper.Helper, instance *apiv1beta1.OpenSt
 			"type":     "sql_postgres",
 			"host":     fmt.Sprintf("lightspeed-postgres-server.%s.svc", instance.GetNamespace()),
 			"port":     PostgresServicePort,
-			"user":     "postgres",
-			"password": "${env.POSTGRES_PASSWORD}",
-			// Note: Database name is HARDCODED to "llamastack" in llama-stack's postgres adapter
-			// Not configurable - llama-stack ignores image_name for database selection
+			"user":     "${env.POSTGRESQL_USER}",
+			"password": "${env.POSTGRESQL_PASSWORD}",
+			"db":       PostgresLlamaStackDbName,
 		},
 	}
 

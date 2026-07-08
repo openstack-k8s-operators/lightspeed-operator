@@ -149,11 +149,12 @@ storage:
       db_path: /tmp/llama-stack/kv_store.db
       type: kv_sqlite
     postgres_backend:
+      db: llamastack
       host: lightspeed-postgres-server.openstack-lightspeed.svc
-      password: ${env.POSTGRES_PASSWORD}
+      password: ${env.POSTGRESQL_PASSWORD}
       port: 5432
       type: sql_postgres
-      user: postgres
+      user: ${env.POSTGRESQL_USER}
     sql_default:
       db_path: /tmp/llama-stack/sql_store.db
       type: sql_sqlite
