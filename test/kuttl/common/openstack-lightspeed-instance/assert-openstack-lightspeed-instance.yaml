@@ -64,6 +64,41 @@ metadata:
   name: lightspeed-postgres-server
   namespace: openstack-lightspeed
 
+# OKP Deployment
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lightspeed-okp-server
+  namespace: openstack-lightspeed
+spec:
+  template:
+    spec:
+      containers:
+        - name: okp
+          ports:
+            - name: okp
+              containerPort: 8080
+status:
+  replicas: 1
+  readyReplicas: 1
+  availableReplicas: 1
+
+# OKP Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lightspeed-okp-server
+  namespace: openstack-lightspeed
+spec:
+  ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: okp
+  type: ClusterIP
+
 # LCore resources
 ---
 apiVersion: v1
@@ -199,6 +234,8 @@ spec:
               value: all=debug
             - name: VECTOR_DB_DATA_PATH
               value: /vector-db-discovered-values
+            - name: RH_SERVER_OKP
+              value: http://lightspeed-okp-server.openstack-lightspeed.svc:8080
           volumeMounts:
             - name: ca-bundle
               mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
@@ -224,6 +261,8 @@ spec:
                 secretKeyRef:
                   key: password
                   name: lightspeed-postgres-secret
+            - name: RH_SERVER_OKP
+              value: http://lightspeed-okp-server.openstack-lightspeed.svc:8080
           volumeMounts:
             - name: ca-bundle
               mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem

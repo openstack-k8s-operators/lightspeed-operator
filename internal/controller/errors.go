@@ -55,8 +55,6 @@ var (
 	// OKP Errors
 	ErrCreateOKPDeployment = errors.New("failed to create OKP deployment")
 	ErrCreateOKPService    = errors.New("failed to create OKP service")
-	ErrDeleteOKPDeployment = errors.New("failed to delete OKP deployment")
-	ErrDeleteOKPService    = errors.New("failed to delete OKP service")
 
 	// Postgres Errors
 	ErrCreatePostgresDeployment      = errors.New("failed to create Postgres deployment")

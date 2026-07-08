@@ -135,10 +135,15 @@ var _ = Describe("Llama Stack config", func() {
 				instance := getOpenStackLightspeedProvidersInstance(provider)
 				modelsConfig := buildLlamaStackModels(nil, instance)
 
-				Expect(modelsConfig).To(HaveLen(1))
+				Expect(modelsConfig).To(HaveLen(2))
 
 				modelConfig := modelsConfig[0].(map[string]interface{})
 				checkModelCommonConfig(modelConfig, instance)
+
+				okpModel := modelsConfig[1].(map[string]interface{})
+				Expect(okpModel["model_id"]).To(Equal("solr_embedding"))
+				Expect(okpModel["model_type"]).To(Equal("embedding"))
+				Expect(okpModel["provider_id"]).To(Equal("sentence-transformers"))
 			},
 			Entry("for openai", OpenAIProviderName),
 			Entry("for gemini", GeminiProviderName),

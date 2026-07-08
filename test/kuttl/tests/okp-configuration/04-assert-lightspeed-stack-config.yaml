@@ -1,8 +1,0 @@
-apiVersion: kuttl.dev/v1beta1
-kind: TestAssert
-commands:
-  - script: |
-      #!/bin/bash
-      set -euo pipefail
-      ../../common/expected-configs/validate-config.sh lightspeed-stack ../../common/expected-configs/lightspeed-stack-okp.yaml
-    timeout: 180

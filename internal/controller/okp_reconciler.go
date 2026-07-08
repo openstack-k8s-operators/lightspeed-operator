@@ -24,7 +24,6 @@ import (
 	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -32,39 +31,12 @@ import (
 )
 
 // ReconcileOKPDeployment reconciles the OKP Deployment and Service.
-// When OKP is disabled, it cleans up existing resources.
 func ReconcileOKPDeployment(h *common_helper.Helper, ctx context.Context, instance *apiv1beta1.OpenStackLightspeed) error {
-	if !isOKPEnabled(instance) {
-		return cleanupOKPResources(h, ctx)
-	}
-
 	tasks := []ReconcileTask{
 		{Name: "OKPDeployment", Task: reconcileOKPDeployment},
 		{Name: "OKPService", Task: reconcileOKPService},
 	}
 	return ReconcileTasksFailFast(h, ctx, instance, tasks)
-}
-
-func cleanupOKPResources(h *common_helper.Helper, ctx context.Context) error {
-	logger := h.GetLogger()
-	ns := h.GetBeforeObject().GetNamespace()
-
-	deploy := &appsv1.Deployment{}
-	deploy.Name = OKPDeploymentName
-	deploy.Namespace = ns
-	if err := h.GetClient().Delete(ctx, deploy); err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("%w: %v", ErrDeleteOKPDeployment, err)
-	}
-
-	svc := &corev1.Service{}
-	svc.Name = OKPServiceName
-	svc.Namespace = ns
-	if err := h.GetClient().Delete(ctx, svc); err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("%w: %v", ErrDeleteOKPService, err)
-	}
-
-	logger.Info("OKP resources cleaned up")
-	return nil
 }
 
 func reconcileOKPDeployment(h *common_helper.Helper, ctx context.Context, instance *apiv1beta1.OpenStackLightspeed) error {

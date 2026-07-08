@@ -39,3 +39,5 @@ spec:
     ogxLogLevel: "core=debug,providers=info"
     lightspeedStackLogLevel: ERROR
     dataverseExporterLogLevel: ERROR
+  dev:
+    okpChunkFilterQuery: "product:(*openstack* OR *openshift*)"
