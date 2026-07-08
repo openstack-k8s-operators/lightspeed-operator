@@ -21,3 +21,4 @@ spec:
   dev:
     featureFlags:
       - okp
+    okpChunkFilterQuery: "product:(*openstack* OR *openshift*)"

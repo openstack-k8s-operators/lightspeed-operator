@@ -254,16 +254,16 @@ func buildLlamaStackVectorDB(_ *common_helper.Helper, _ *apiv1beta1.OpenStackLig
 	}
 }
 
-func buildLlamaStackVectorIO(h *common_helper.Helper, instance *apiv1beta1.OpenStackLightspeed) []interface{} {
+func buildLlamaStackVectorIO(h *common_helper.Helper, instance *apiv1beta1.OpenStackLightspeed, chunkFilterQuery string) []interface{} {
 	providers := buildLlamaStackVectorDB(h, instance)
 	if isOKPEnabled(instance) {
-		providers = append(providers, buildOKPVectorIOProvider(instance))
+		providers = append(providers, buildOKPVectorIOProvider(chunkFilterQuery))
 	}
 	return providers
 }
 
-func buildOKPVectorIOProvider(instance *apiv1beta1.OpenStackLightspeed) map[string]interface{} {
-	chunkFilterQuery := "is_chunk:true AND " + getOKPChunkFilterQuery(instance)
+func buildOKPVectorIOProvider(chunkFilterQuery string) map[string]interface{} {
+	chunkFilterQuery = "is_chunk:true AND " + chunkFilterQuery
 
 	return map[string]interface{}{
 		"provider_id":   "okp_solr",
@@ -426,8 +426,10 @@ func buildLlamaStackYAML(h *common_helper.Helper, ctx context.Context, instance 
 		return "", fmt.Errorf("failed to build inference providers: %w", err)
 	}
 
+	okpChunkFilterQuery := ""
 	if isOKPEnabled(instance) {
 		config["external_providers_dir"] = ExternalProvidersDir
+		okpChunkFilterQuery = getOKPChunkFilterQuery(ctx, h, instance)
 	}
 
 	// Build providers map - only include providers for enabled APIs
@@ -437,7 +439,7 @@ func buildLlamaStackYAML(h *common_helper.Helper, ctx context.Context, instance 
 		"inference":    inferenceProviders,
 		"safety":       buildLlamaStackSafety(h, instance),
 		"tool_runtime": buildLlamaStackToolRuntime(h, instance),
-		"vector_io":    buildLlamaStackVectorIO(h, instance),
+		"vector_io":    buildLlamaStackVectorIO(h, instance, okpChunkFilterQuery),
 	}
 
 	// Add top-level fields

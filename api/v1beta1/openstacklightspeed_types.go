@@ -55,7 +55,7 @@ const (
 //
 // Supported fields:
 //   - featureFlags: list of experimental feature flags to enable (e.g. ["okp"])
-//   - okpChunkFilterQuery: Solr filter query for OKP searches (default: "product:(*openstack* OR *openshift*)")
+//   - okpChunkFilterQuery: Solr filter query for OKP searches (default: version-aware query combining detected OpenStack and OCP versions)
 //   - okpRagOnly: when true, only OKP is used as a RAG source (default: false)
 type DevSpec struct {
 	FeatureFlags        []string `json:"featureFlags,omitempty"`

@@ -120,14 +120,16 @@ const (
 	ServiceIDRHOSO                 = "rhos-lightspeed"
 
 	// OKP (Offline Knowledge Portal)
-	OKPContainerName           = "okp"
-	OKPContainerPort           = int32(8080)
-	OKPDeploymentName          = "lightspeed-okp-server"
-	OKPServiceName             = "lightspeed-okp-server"
-	OKPServicePort             = int32(8080)
-	OKPAccessKeySecretKey      = "access_key"
-	OKPDefaultChunkFilterQuery = "product:(*openstack* OR *openshift*)"
-	ExternalProvidersDir       = "/app-root/providers.d"
+	OKPContainerName       = "okp"
+	OKPContainerPort       = int32(8080)
+	OKPDeploymentName      = "lightspeed-okp-server"
+	OKPServiceName         = "lightspeed-okp-server"
+	OKPServicePort         = int32(8080)
+	OKPAccessKeySecretKey  = "access_key"
+	OKPDefaultOCPVersion   = "4.21"
+	OKPDefaultRHOSOVersion = "18.0"
+	OKPChunkFilterQueryFmt = "((product:*openstack* AND product_version:%s) OR (product:*openshift* AND product_version:%s))"
+	ExternalProvidersDir   = "/app-root/providers.d"
 
 	// Console Plugin
 	ConsoleUIConfigMapName         = "lightspeed-console-plugin"

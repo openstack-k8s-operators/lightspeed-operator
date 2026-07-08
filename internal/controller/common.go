@@ -148,13 +148,24 @@ func isOKPEnabled(instance *apiv1beta1.OpenStackLightspeed) bool {
 	return slices.Contains(config.FeatureFlags, "okp")
 }
 
-// getOKPChunkFilterQuery returns the chunk filter query from the dev config, or the default.
-func getOKPChunkFilterQuery(instance *apiv1beta1.OpenStackLightspeed) string {
+// getOKPChunkFilterQuery returns the chunk filter query from the dev config, or a version-aware default.
+func getOKPChunkFilterQuery(ctx context.Context, h *common_helper.Helper, instance *apiv1beta1.OpenStackLightspeed) string {
 	config, _ := parseDevConfig(instance)
 	if config.OKPChunkFilterQuery != "" {
 		return config.OKPChunkFilterQuery
 	}
-	return OKPDefaultChunkFilterQuery
+
+	logger := h.GetLogger()
+
+	ocpVersion, err := DetectOCPVersion(ctx, h)
+	if err != nil {
+		logger.Error(err, "Failed to detect OCP version, using default", "default", OKPDefaultOCPVersion)
+		ocpVersion = OKPDefaultOCPVersion
+	}
+
+	osVersion := detectRHOSOVersion(ocpVersion, logger)
+
+	return fmt.Sprintf(OKPChunkFilterQueryFmt, osVersion, ocpVersion)
 }
 
 // getDeployment retrieves deployment from the cluster

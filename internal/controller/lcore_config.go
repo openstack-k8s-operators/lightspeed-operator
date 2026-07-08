@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 
@@ -203,25 +204,26 @@ ingress_connection_timeout: 30
 	}
 }
 
-func buildOKPConfig(instance *apiv1beta1.OpenStackLightspeed) map[string]interface{} {
+func buildOKPConfig(ctx context.Context, h *common_helper.Helper, instance *apiv1beta1.OpenStackLightspeed) map[string]interface{} {
 	offline := true
 	if instance.Spec.OKP != nil && instance.Spec.OKP.Offline != nil {
 		offline = *instance.Spec.OKP.Offline
 	}
 
-	okpConfig := map[string]interface{}{
-		"rhokp_url": "${env.RH_SERVER_OKP}",
-		"offline":   offline,
+	return map[string]interface{}{
+		"rhokp_url":          "${env.RH_SERVER_OKP}",
+		"offline":            offline,
+		"chunk_filter_query": getOKPChunkFilterQuery(ctx, h, instance),
 	}
-	okpConfig["chunk_filter_query"] = getOKPChunkFilterQuery(instance)
-	return okpConfig
 }
 
 // buildLCoreConfigYAML assembles the complete Lightspeed Core Service configuration and converts to YAML.
 // NOTE: MCP servers, quota handlers, and tools approval features are disabled for OpenStack Lightspeed.
-func buildLCoreConfigYAML(h *common_helper.Helper, instance *apiv1beta1.OpenStackLightspeed) (string, error) {
+func buildLCoreConfigYAML(ctx context.Context, h *common_helper.Helper, instance *apiv1beta1.OpenStackLightspeed) (string, error) {
+	okpEnabled := isOKPEnabled(instance)
+
 	ragInline := []interface{}{}
-	if isOKPEnabled(instance) {
+	if okpEnabled {
 		ragInline = append(ragInline, "okp")
 	}
 	ragConfig := map[string]interface{}{
@@ -243,8 +245,8 @@ func buildLCoreConfigYAML(h *common_helper.Helper, instance *apiv1beta1.OpenStac
 		"rag":                  ragConfig,
 	}
 
-	if isOKPEnabled(instance) {
-		config["okp"] = buildOKPConfig(instance)
+	if okpEnabled {
+		config["okp"] = buildOKPConfig(ctx, h, instance)
 	}
 
 	// Convert to YAML

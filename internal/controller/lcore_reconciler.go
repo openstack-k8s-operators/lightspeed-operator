@@ -217,7 +217,7 @@ func reconcileLcoreConfigMap(h *common_helper.Helper, ctx context.Context, insta
 	logger := h.GetLogger()
 
 	// Build the YAML data
-	yamlData, err := buildLCoreConfigYAML(h, instance)
+	yamlData, err := buildLCoreConfigYAML(ctx, h, instance)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrGenerateAPIConfigmap, err)
 	}
