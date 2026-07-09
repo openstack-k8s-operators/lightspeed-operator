@@ -96,16 +96,6 @@ type OpenStackLightspeedSpec struct {
 	OpenStackLightspeedCore `json:",inline"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=false
-	// Enables automatic OCP documentation based on cluster version
-	EnableOCPRAG bool `json:"enableOCPRAG,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	// Allows forcing a specific OCP version instead of auto-detection.
-	// Format should be like "4.15", "4.16", etc.
-	OCPRAGVersionOverride string `json:"ocpVersionOverride,omitempty"`
-
-	// +kubebuilder:validation:Optional
 	// Database configures persistent storage for PostgreSQL data.
 	// When omitted, an emptyDir volume is used (data is lost on pod reschedule).
 	// When set, a PersistentVolumeClaim is created and mounted.
@@ -211,11 +201,6 @@ type OpenStackLightspeedStatus struct {
 
 	// ObservedGeneration - the most recent generation observed for this object.
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-
-	// +optional
-	// ActiveOCPRAGVersion contains the OCP version being used for RAG configuration
-	// Will be one of: "4.16", "4.18", "latest", or empty if OCP RAG is disabled
-	ActiveOCPRAGVersion string `json:"activeOCPRAGVersion,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -29,9 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
-	uns "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -143,10 +141,6 @@ func (r *OpenStackLightspeedReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	instance.Status.Conditions.Init(&cl)
 	instance.Status.ObservedGeneration = instance.Generation
-
-	// TODO(lpiwowar): Use the resolve OCP version when we add the RAG deployment
-	// OCP Version Detection and Resolution - must be done early so status field is always set
-	_ = r.resolveOCPVersion(ctx, helper, instance)
 
 	if !instance.DeletionTimestamp.IsZero() {
 		if err := r.reconcileDelete(ctx, helper, instance); err != nil {
@@ -267,15 +261,6 @@ func (r *OpenStackLightspeedReconciler) reconcileStatus(
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *OpenStackLightspeedReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// Create an unstructured ClusterVersion for watching
-	// This triggers reconciliation when OCP is upgraded (e.g., 4.16 -> 4.18)
-	clusterVersion := &uns.Unstructured{}
-	clusterVersion.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "config.openshift.io",
-		Version: "v1",
-		Kind:    "ClusterVersion",
-	})
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&apiv1beta1.OpenStackLightspeed{}).
 		Owns(&operatorsv1alpha1.ClusterServiceVersion{}).
@@ -289,11 +274,6 @@ func (r *OpenStackLightspeedReconciler) SetupWithManager(mgr ctrl.Manager) error
 		Owns(&consolev1.ConsolePlugin{}).
 		Watches(
 			&corev1.PersistentVolumeClaim{},
-			handler.EnqueueRequestsFromMapFunc(r.NotifyAllOpenStackLightspeeds),
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
-		).
-		Watches(
-			clusterVersion,
 			handler.EnqueueRequestsFromMapFunc(r.NotifyAllOpenStackLightspeeds),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).

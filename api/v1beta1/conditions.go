@@ -27,9 +27,6 @@ const (
 	// OpenShift Lightspeed Operator Status=True condition which indicates if OpenShift Lightspeed is installed and
 	// operational and it can be used by OpenStack Lightspeed operator.
 	OpenShiftLightspeedOperatorReadyCondition condition.Type = "OpenShiftLightspeedOperatorReady"
-
-	// OCPRAGCondition Status=True condition which indicates the OCP RAG version resolution status
-	OCPRAGCondition condition.Type = "OCPRAGReady"
 )
 
 // Common Messages used by API objects.
@@ -48,21 +45,6 @@ const (
 
 	// OpenShiftLightspeedOperatorReady
 	OpenShiftLightspeedOperatorReady = "OpenShift Lightspeed operator is ready."
-
-	// OCPRAGDisabledMessage
-	OCPRAGDisabledMessage = "OCP RAG is disabled"
-
-	// OCPRAGVersionResolvedMessage
-	OCPRAGVersionResolvedMessage = "OCP RAG version resolved: %s"
-
-	// OCPRAGVersionFallbackMessage
-	OCPRAGVersionFallbackMessage = "Cluster version %s is not explicitly supported. Using 'latest' OCP documentation. Supported versions: %v"
-
-	// OCPRAGDetectionFailedMessage
-	OCPRAGDetectionFailedMessage = "Failed to detect OCP cluster version"
-
-	// OCPRAGOverrideInvalidMessage
-	OCPRAGOverrideInvalidMessage = "Invalid OCP RAG version override"
 
 	// DeploymentCheckFailedMessage
 	DeploymentCheckFailedMessage = "Failed to check deployment status: %s"

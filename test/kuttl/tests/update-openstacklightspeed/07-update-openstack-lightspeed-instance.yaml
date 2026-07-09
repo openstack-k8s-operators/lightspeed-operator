@@ -30,11 +30,6 @@ spec:
   llmAPIVersion: v1.1
   feedbackDisabled: true
   transcriptsDisabled: true
-  # NOTE(lpiwowar): We have to keep enableOCPRAG: false even after the update
-  # because the OpenStack Lightspeed vector DB image does not contain OCP content.
-  # We can set it to `true` once the OCP contant is present in the image.
-  enableOCPRAG: false
-  ocpVersionOverride: "4.16"
   logging:
     ogxLogLevel: "core=debug,providers=info"
     lightspeedStackLogLevel: ERROR

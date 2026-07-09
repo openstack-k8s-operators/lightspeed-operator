@@ -75,11 +75,6 @@ spec:
                   This section is not part of the stable API and may change at any time without backward compatibility.
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
-              enableOCPRAG:
-                default: false
-                description: Enables automatic OCP documentation based on cluster
-                  version
-                type: boolean
               feedbackDisabled:
                 description: Disable feedback collection
                 type: boolean
@@ -155,11 +150,6 @@ spec:
                 description: Name of the model to use at the API endpoint provided
                   in LLMEndpoint
                 type: string
-              ocpVersionOverride:
-                description: |-
-                  Allows forcing a specific OCP version instead of auto-detection.
-                  Format should be like "4.15", "4.16", etc.
-                type: string
               okp:
                 description: OKP configures the Offline Knowledge Portal (OKP) RAG
                   source.
@@ -193,11 +183,6 @@ spec:
           status:
             description: OpenStackLightspeedStatus defines the observed state of OpenStackLightspeed
             properties:
-              activeOCPRAGVersion:
-                description: |-
-                  ActiveOCPRAGVersion contains the OCP version being used for RAG configuration
-                  Will be one of: "4.16", "4.18", "latest", or empty if OCP RAG is disabled
-                type: string
               conditions:
                 description: Conditions
                 items:
