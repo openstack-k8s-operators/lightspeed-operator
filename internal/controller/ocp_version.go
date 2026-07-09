@@ -250,7 +250,7 @@ func BuildRAGConfigs(instance *apiv1beta1.OpenStackLightspeed, ocpVersion string
 	rags := []interface{}{
 		// OpenStack RAG
 		map[string]interface{}{
-			"image":     instance.Spec.RAGImage,
+			"image":     apiv1beta1.OpenStackLightspeedDefaultValues.RAGImageURL,
 			"indexPath": OpenStackLightspeedVectorDBPath,
 		},
 	}
@@ -258,7 +258,7 @@ func BuildRAGConfigs(instance *apiv1beta1.OpenStackLightspeed, ocpVersion string
 	// Add OCP RAG if enabled
 	if ocpVersion != "" {
 		rags = append(rags, map[string]interface{}{
-			"image":     instance.Spec.RAGImage,
+			"image":     apiv1beta1.OpenStackLightspeedDefaultValues.RAGImageURL,
 			"indexPath": GetOCPVectorDBPath(ocpVersion),
 			"indexID":   GetOCPIndexName(ocpVersion),
 		})

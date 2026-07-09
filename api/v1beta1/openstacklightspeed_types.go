@@ -96,10 +96,6 @@ type OpenStackLightspeedSpec struct {
 	OpenStackLightspeedCore `json:",inline"`
 
 	// +kubebuilder:validation:Optional
-	// ContainerImage for the OpenStack Lightspeed RAG container (will be set to environmental default if empty)
-	RAGImage string `json:"ragImage"`
-
-	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
 	// Enables automatic OCP documentation based on cluster version
 	EnableOCPRAG bool `json:"enableOCPRAG,omitempty"`

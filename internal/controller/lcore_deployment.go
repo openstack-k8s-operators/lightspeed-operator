@@ -269,7 +269,7 @@ func buildInitContainers(
 	var containers []corev1.Container
 	containers = append(containers, corev1.Container{
 		Name:  "vector-database-collect",
-		Image: instance.Spec.RAGImage,
+		Image: apiv1beta1.OpenStackLightspeedDefaultValues.RAGImageURL,
 		Command: func() []string {
 			cmd := []string{
 				"sh", VectorDBScriptsMountPath + "/" + VectorDBCollectScriptKey,
