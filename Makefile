@@ -142,6 +142,12 @@ lint: golangci-lint ## Run golangci-lint linter
 lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 	$(GOLANGCI_LINT) run --fix
 
+##@ Security
+
+.PHONY: govulncheck
+govulncheck: govulncheck-install ## Run govulncheck vulnerability scanner.
+	GOTOOLCHAIN=auto $(GOVULNCHECK) ./...
+
 ##@ Build
 
 .PHONY: build
@@ -244,6 +250,7 @@ CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 KUTTL ?= $(LOCALBIN)/kubectl-kuttl
+GOVULNCHECK ?= $(LOCALBIN)/govulncheck
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.4.2
@@ -251,6 +258,7 @@ CONTROLLER_TOOLS_VERSION ?= v0.16.5
 ENVTEST_VERSION ?= release-0.22
 GOLANGCI_LINT_VERSION ?= v2.6.0
 KUTTL_VERSION ?= 0.22.0
+GOVULNCHECK_VERSION ?= v1.6.0
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
@@ -283,6 +291,10 @@ kuttl-test: kuttl ## Run kuttl tests
 	@command -v diff >/dev/null 2>&1 || { echo "ERROR: 'diff' command is required for KUTTL tests but not found in PATH" >&2; exit 1; }
 	@command -v oc >/dev/null 2>&1 || { echo "ERROR: 'oc' command is required for KUTTL tests but not found in PATH" >&2; exit 1; }
 	$(LOCALBIN)/kubectl-kuttl test --config kuttl-test.yaml test/kuttl/tests $(KUTTL_ARGS)
+
+.PHONY: govulncheck-install
+govulncheck-install: $(LOCALBIN) ## Download govulncheck locally if necessary.
+	$(call go-install-tool,$(GOVULNCHECK),golang.org/x/vuln/cmd/govulncheck,$(GOVULNCHECK_VERSION))
 
 .PHONY: kuttl-test-run
 kuttl-test-run: kuttl openstack-lightspeed-deploy kuttl-test openstack-lightspeed-undeploy
