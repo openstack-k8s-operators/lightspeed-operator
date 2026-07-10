@@ -18,7 +18,9 @@ package controller
 
 import (
 	"context"
+	"crypto/rand"
 	_ "embed"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -183,4 +185,18 @@ func getDeployment(ctx context.Context, h *common_helper.Helper, name string, na
 	}
 
 	return deployment, nil
+}
+
+// generateRandomString generates a random hex string of the given length.
+func generateRandomString(secretLength int) (string, error) {
+	// Ceiling division: hex.EncodeToString doubles the byte count, so we need ceil(secretLength/2) bytes.
+	randDataLen := (secretLength + 1) / 2
+
+	b := make([]byte, randDataLen)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("failed to generate secret: %w", err)
+	}
+
+	randString := hex.EncodeToString(b)
+	return randString[:secretLength], nil
 }

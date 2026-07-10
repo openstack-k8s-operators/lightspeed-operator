@@ -18,8 +18,6 @@ package controller
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 
 	common_helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
@@ -143,16 +141,14 @@ func reconcilePostgresSecret(h *common_helper.Helper, ctx context.Context, _ *ap
 		}
 
 		// Only set password if not already present (preserve existing password)
-		if len(secret.Data) == 0 || secret.Data[OpenStackLightspeedComponentPasswordFileName] == nil {
-			// Generate random password only on first creation
-			randomPassword := make([]byte, 12)
-			if _, err := rand.Read(randomPassword); err != nil {
+		if secret.Data[OpenStackLightspeedComponentPasswordFileName] == nil {
+			const PostgreSQLPasswordLen = 32
+			password, err := generateRandomString(PostgreSQLPasswordLen)
+			if err != nil {
 				return fmt.Errorf("%w: %v", ErrGeneratePostgresSecret, err)
 			}
-			encodedPassword := base64.StdEncoding.EncodeToString(randomPassword)
-			secret.Data = map[string][]byte{
-				OpenStackLightspeedComponentPasswordFileName: []byte(encodedPassword),
-			}
+
+			secret.Data[OpenStackLightspeedComponentPasswordFileName] = []byte(password)
 		}
 
 		secret.Data[PostgresUsernameSecretKey] = []byte(PostgresSQLUsername)
