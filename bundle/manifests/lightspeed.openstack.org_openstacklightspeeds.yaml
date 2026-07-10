@@ -75,8 +75,9 @@ spec:
                   This section is not part of the stable API and may change at any time without backward compatibility.
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
-              feedbackDisabled:
-                description: Disable feedback collection
+              feedbackEnabled:
+                default: true
+                description: Enable feedback collection
                 type: boolean
               llmAPIVersion:
                 description: LLM API Version for LLM providers that require it (e.g.,
@@ -171,8 +172,9 @@ spec:
               tlsCACertBundle:
                 description: Configmap name containing a CA Certificates bundle
                 type: string
-              transcriptsDisabled:
-                description: Disable conversation transcripts collection
+              transcriptsEnabled:
+                default: true
+                description: Enable conversation transcripts collection
                 type: boolean
             required:
             - llmCredentials

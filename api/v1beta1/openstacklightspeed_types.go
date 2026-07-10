@@ -181,12 +181,14 @@ type OpenStackLightspeedCore struct {
 	LLMAPIVersion string `json:"llmAPIVersion,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// Disable feedback collection
-	FeedbackDisabled bool `json:"feedbackDisabled,omitempty"`
+	// +kubebuilder:default=true
+	// Enable feedback collection
+	FeedbackEnabled *bool `json:"feedbackEnabled,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// Disable conversation transcripts collection
-	TranscriptsDisabled bool `json:"transcriptsDisabled,omitempty"`
+	// +kubebuilder:default=true
+	// Enable conversation transcripts collection
+	TranscriptsEnabled *bool `json:"transcriptsEnabled,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default={}
