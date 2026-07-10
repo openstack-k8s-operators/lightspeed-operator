@@ -434,10 +434,6 @@ status:
       status: "True"
       reason: Ready
       message: Setup complete
-    - type: OCPRAGReady
-      status: "True"
-      reason: Ready
-      message: OCP RAG is disabled
     - type: OpenStackLightspeedReady
       status: "True"
       reason: Ready

@@ -273,8 +273,6 @@ spec:
   llmAPIVersion: v1.1
   feedbackDisabled: true
   transcriptsDisabled: true
-  enableOCPRAG: false
-  ocpVersionOverride: "4.16"
   logging:
     ogxLogLevel: "core=debug,providers=info"
     lightspeedStackLogLevel: ERROR
@@ -284,9 +282,6 @@ status:
       status: "True"
       reason: Ready
       message: Setup complete
-    - type: OCPRAGReady
-      status: "True"
-      message: OCP RAG is disabled
     - type: OpenStackLightspeedReady
       status: "True"
       reason: Ready

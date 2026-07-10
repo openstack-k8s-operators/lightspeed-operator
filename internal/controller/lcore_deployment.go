@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"path"
 	"slices"
-	"strconv"
 	"strings"
 
 	common_helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
@@ -212,10 +211,7 @@ func buildLCorePodTemplateSpec(h *common_helper.Helper, ctx context.Context, ins
 		return corev1.PodTemplateSpec{}, err
 	}
 
-	initContainers, err := buildInitContainers(ctx, h, instance)
-	if err != nil {
-		return corev1.PodTemplateSpec{}, err
-	}
+	initContainers := buildInitContainers(instance)
 
 	return corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
@@ -237,16 +233,7 @@ func buildLCorePodTemplateSpec(h *common_helper.Helper, ctx context.Context, ins
 // and Lightspeed Stack configuration files, incorporating information from
 // the provided vector database images. For details on their logic, see:
 // (1) assets/vector_database_collect.sh and (2) assets/vector_database_build.py.
-func buildInitContainers(
-	ctx context.Context,
-	helper *common_helper.Helper,
-	instance *apiv1beta1.OpenStackLightspeed,
-) ([]corev1.Container, error) {
-	ocp_version, err := DetectOCPVersion(ctx, helper)
-	if err != nil {
-		return []corev1.Container{}, err
-	}
-
+func buildInitContainers(instance *apiv1beta1.OpenStackLightspeed) []corev1.Container {
 	securityContext := &corev1.SecurityContext{
 		RunAsNonRoot:             &[]bool{true}[0],
 		AllowPrivilegeEscalation: &[]bool{false}[0],
@@ -270,16 +257,11 @@ func buildInitContainers(
 	containers = append(containers, corev1.Container{
 		Name:  "vector-database-collect",
 		Image: apiv1beta1.OpenStackLightspeedDefaultValues.RAGImageURL,
-		Command: func() []string {
-			cmd := []string{
-				"sh", VectorDBScriptsMountPath + "/" + VectorDBCollectScriptKey,
-				"--vector-db-path", VectorDBVolumeMountPath,
-				"--enable-ocp-rag", strconv.FormatBool(instance.Spec.EnableOCPRAG),
-				"--ocp-version", ocp_version,
-			}
-			cmd = append(cmd, "--enable-okp")
-			return cmd
-		}(),
+		Command: []string{
+			"sh", VectorDBScriptsMountPath + "/" + VectorDBCollectScriptKey,
+			"--vector-db-path", VectorDBVolumeMountPath,
+			"--enable-okp",
+		},
 		SecurityContext: securityContext,
 		Resources:       resourceRequirements,
 		VolumeMounts: []corev1.VolumeMount{
@@ -335,7 +317,7 @@ func buildInitContainers(
 		},
 	})
 
-	return containers, nil
+	return containers
 }
 
 // buildLightspeedStackConfigVolume returns the volume for the lightspeed-stack config.

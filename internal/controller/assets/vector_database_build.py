@@ -29,9 +29,6 @@ Input layout (under --vector-db-path, produced by vector_database_collect.sh):
       │   ├── <vector-db-name>/
       │   │   ├── llama-stack.yaml
       │   │   └── faiss_store.db
-      │   └── ocp_X.YZ/             (optional, when OCP RAG is enabled)
-      │       ├── llama-stack.yaml
-      │       └── faiss_store.db
       └── embeddings_model/
 
 Output (written to --vector-db-path, same basenames as the base configs):

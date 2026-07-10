@@ -31,13 +31,6 @@
 # │   └── vector-db-data-N/
 # │       ├── faiss_store.db
 # │       └── llama-stack.yaml
-# ├── ocp_vector_db/
-# │   ├── ocp_X.YZ/
-# │   │   ├── faiss_store.db
-# │   │   └── llama-stack.yaml
-# │   └── ocp_latest/
-# │       ├── faiss_store.db
-# │       └── llama-stack.yaml
 # ├── embeddings_model/
 # │   └── <model_files>
 # └── okp_embeddings_model/
@@ -48,8 +41,7 @@
 # ├── <random-tmp-dir>/
 # │   ├── vector_db/
 # │   │   ├── vector-db-data-1/
-# │   │   ├── vector-db-data-N/
-# │   │   └── ocp_X.YZ/     (if --enable-ocp-rag true and --ocp-version X.YZ)
+# │   │   └── vector-db-data-N/
 # │   └── embeddings_model/
 # │       └── <model_files>
 # └── okp_embeddings_model/  (if --enable-okp true)
@@ -57,8 +49,6 @@
 #
 # Arguments:
 #  --vector-db-path PATH    Target directory for collected data (required)
-#  --enable-ocp-rag BOOL    Enable OCP vector DB collection: true/false (required)
-#  --ocp-version VERSION    OCP version to collect, e.g., "X.YZ" (required)
 #  --enable-okp             Enable OKP embedding model collection (flag, default: disabled)
 
 set -eu
@@ -68,17 +58,6 @@ set -eu
 # VECTOR_DB_VOLUME_MOUNT_PATH is location where content of a vector database
 # image is mounted. Populated via parse_arguments_and_init.
 VECTOR_DB_VOLUME_MOUNT_PATH=""
-
-# ENABLE_OCP_RAG specifies whether this script should collect vector database
-# content related to OCP (expected to be found under OCP_VECTOR_DB_DIR).
-# Must be set to "true" for the collection to be enabled. Populated via
-# parse_arguments_and_init.
-ENABLE_OCP_RAG=""
-
-# OCP_VERSION specifies what version of OCP content should be collected from
-# the vector database image -> ${OCP_VECTOR_DB_DIR}/ocp_${OCP_VERSION}. Populated
-# via parse_arguments_and_init.
-OCP_VERSION=""
 
 # ENABLE_OKP specifies whether this script should collect the OKP embedding
 # model (expected to be found under OKP_EMBEDDING_MODEL_SRC). Defaults to
@@ -101,16 +80,6 @@ VECTOR_DB_DATA_COLLECT_DIR=""
 # EMBEDDINGS_MODEL_DATA_COLLECT_DIR is location within COLLECT_DIR where
 # embeddings model should be stored. Populated via parse_arguments_and_init.
 EMBEDDINGS_MODEL_DATA_COLLECT_DIR=""
-
-# OCP_VECTOR_DB_DIR specifies the directory within the vector DB container image
-# where OCP-specific vector DB data must reside. This script expects to find the
-# OCP data exclusively at this location.
-OCP_VECTOR_DB_DIR="/rag/ocp_vector_db"
-
-# OCP_VECTOR_DB_DIR_FALLBACK specifies the directory within the vector DB container
-# image that contains the default OCP vector DB data. This path is used when no data
-# matching the version specified via --ocp-version is found.
-OCP_VECTOR_DB_DIR_FALLBACK="/rag/ocp_vector_db/ocp_latest"
 
 # VECTOR_DB_DIR specifies the directory within the vector DB container image
 # where general vector DB data must reside.
@@ -140,25 +109,15 @@ parse_arguments_and_init() {
                 VECTOR_DB_VOLUME_MOUNT_PATH="$2"
                 shift 2
                 ;;
-            --enable-ocp-rag)
-                ENABLE_OCP_RAG="$2"
-                shift 2
-                ;;
-            --ocp-version)
-                OCP_VERSION="$2"
-                shift 2
-                ;;
             --enable-okp)
                 ENABLE_OKP="true"
                 shift 1
                 ;;
             -h|--help)
-                echo "Usage: $0 --vector-db-path PATH --enable-ocp-rag BOOL --ocp-version VERSION [--enable-okp]"
+                echo "Usage: $0 --vector-db-path PATH [--enable-okp]"
                 echo ""
                 echo "Arguments:"
                 echo "  --vector-db-path     Target path for vector DB data collection"
-                echo "  --enable-ocp-rag     Enable OCP RAG collection (true/false)"
-                echo "  --ocp-version        OCP version to collect (e.g., 4.16)"
                 echo "  --enable-okp         Enable OKP embedding model collection (default: disabled)"
                 echo "  -h, --help           Show this help message"
                 exit 0
@@ -173,16 +132,6 @@ parse_arguments_and_init() {
 
     if [ -z "${VECTOR_DB_VOLUME_MOUNT_PATH:-}" ]; then
         echo "ERROR: --vector-db-path is required"
-        exit 1
-    fi
-
-    if [ -z "${ENABLE_OCP_RAG:-}" ]; then
-        echo "ERROR: --enable-ocp-rag is required"
-        exit 1
-    fi
-
-    if [ -z "${OCP_VERSION:-}" ]; then
-        echo "ERROR: --ocp-version is required"
         exit 1
     fi
 
@@ -210,26 +159,6 @@ validate_vector_db_dir() {
     fi
 }
 
-collect_ocp_vector_db_data() {
-    if [ "${ENABLE_OCP_RAG}" != "true" ]; then
-        echo "Collecting of OCP vector db data is DISABLED => Skipping"
-        return
-    fi
-
-    echo "Collecting OCP vector DB data ..."
-    mkdir -p "${VECTOR_DB_DATA_COLLECT_DIR}"
-
-    ocp_dir="${OCP_VECTOR_DB_DIR}/ocp_${OCP_VERSION}"
-    if [ ! -d "${ocp_dir}" ]; then
-        echo "Data for OCP version ${OCP_VERSION} not found. Using: ${OCP_VECTOR_DB_DIR_FALLBACK}"
-        ocp_dir=${OCP_VECTOR_DB_DIR_FALLBACK}
-    fi
-
-    validate_vector_db_dir "${ocp_dir}"
-    cp -rL "${ocp_dir}" "${VECTOR_DB_DATA_COLLECT_DIR}"
-    echo "Discovered and collected OCP vector DB data from ${ocp_dir}"
-}
-
 collect_vector_db_data() {
     echo "Collecting vector DB data ..."
     mkdir -p "${VECTOR_DB_DATA_COLLECT_DIR}"
@@ -243,8 +172,8 @@ collect_vector_db_data() {
         echo "Discovered and collected vector DB data from ${dir}"
     done
 
-    if [ "${ENABLE_OCP_RAG}" != "true" ] && [ ${vector_db_data_collected} != "true" ]; then
-        echo "ERROR: ENABLE_OCP_RAG='${ENABLE_OCP_RAG}' and no generic vector db data found."
+    if [ ${vector_db_data_collected} != "true" ]; then
+        echo "ERROR: no generic vector db data found."
         exit 1
     fi
 }
@@ -288,7 +217,6 @@ main() {
     # variables are initialized before proceeding.
     parse_arguments_and_init "$@"
     collect_vector_db_data
-    collect_ocp_vector_db_data
     collect_embeddings_model
     collect_okp_embeddings_model
 }

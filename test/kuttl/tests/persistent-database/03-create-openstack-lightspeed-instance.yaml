@@ -13,6 +13,5 @@ spec:
   llmProjectID: test-project-id
   llmDeploymentName: test-deployment-name
   llmAPIVersion: v1
-  enableOCPRAG: false
   database:
     size: "2Gi"
