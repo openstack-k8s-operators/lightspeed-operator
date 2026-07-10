@@ -8,6 +8,7 @@ linters:
     - errcheck
     - ginkgolinter
     - goconst
+    - gosec
     - gocyclo
     - govet
     - ineffassign
@@ -34,6 +35,12 @@ linters:
           - dupl
           - lll
         path: internal/*
+      - linters:
+          - gosec
+        path: _test\.go
+      - linters:
+          - gosec
+        path: ^test/
     paths:
       - third_party$
       - builtin$

@@ -36,10 +36,10 @@ const (
 	OpenStackLightspeedDefaultProvider             = "openstack-lightspeed-provider"
 	OpenStackLightspeedVectorDBPath                = "/rag/vector_db/os_product_docs"
 
-	ServingCertSecretAnnotationKey = "service.beta.openshift.io/serving-cert-secret-name"
+	ServingCertSecretAnnotationKey = "service.beta.openshift.io/serving-cert-secret-name" // #nosec G101 -- annotation key, not a credential
 
 	// Monitoring
-	MetricsReaderServiceAccountTokenSecretName = "metrics-reader-token"
+	MetricsReaderServiceAccountTokenSecretName = "metrics-reader-token" // #nosec G101 -- Kubernetes Secret resource name, not a credential
 	MetricsReaderServiceAccountName            = "lightspeed-operator-metrics-reader"
 
 	// Postgres
@@ -284,7 +284,7 @@ const (
 	// by the OpenShift service-ca operator when the lightspeed-app-server Service is
 	// annotated with service.beta.openshift.io/serving-cert-secret-name. Contains
 	// tls.crt and tls.key used by the lightspeed-service-api container to serve HTTPS.
-	OpenStackLightspeedCertsSecretName = "lightspeed-tls"
+	OpenStackLightspeedCertsSecretName = "lightspeed-tls" // #nosec G101 -- Kubernetes Secret resource name, not a credential
 
 	// PostgresCertsSecretName is the name of the Secret auto-provisioned by the
 	// OpenShift service-ca operator when the lightspeed-postgres-server Service is
