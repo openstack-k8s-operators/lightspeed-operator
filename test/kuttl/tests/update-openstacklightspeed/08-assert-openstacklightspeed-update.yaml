@@ -287,8 +287,8 @@ spec:
   llmProjectID: test-project-id-UPDATE
   llmDeploymentName: test-deployment-name-UPDATE
   llmAPIVersion: v1.1
-  feedbackDisabled: true
-  transcriptsDisabled: true
+  feedbackEnabled: false
+  transcriptsEnabled: false
   logging:
     ogxLogLevel: "core=debug,providers=info"
     lightspeedStackLogLevel: ERROR
