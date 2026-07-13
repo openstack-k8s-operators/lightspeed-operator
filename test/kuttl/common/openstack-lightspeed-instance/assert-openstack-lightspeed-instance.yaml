@@ -31,6 +31,12 @@ metadata:
   namespace: openstack-lightspeed
 ---
 apiVersion: v1
+kind: Secret
+metadata:
+  name: lightspeed-postgres-secret
+  namespace: openstack-lightspeed
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: lightspeed-postgres-server
@@ -219,10 +225,15 @@ spec:
                 secretKeyRef:
                   key: apitoken
                   name: openstack-lightspeed-apitoken
-            - name: POSTGRES_PASSWORD
+            - name: POSTGRESQL_PASSWORD
               valueFrom:
                 secretKeyRef:
                   key: password
+                  name: lightspeed-postgres-secret
+            - name: POSTGRESQL_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
                   name: lightspeed-postgres-secret
             - name: PGSSLMODE
               value: verify-full
@@ -256,13 +267,18 @@ spec:
           env:
             - name: LIGHTSPEED_STACK_LOG_LEVEL
               value: WARNING
-            - name: POSTGRES_PASSWORD
+            - name: RH_SERVER_OKP
+              value: http://lightspeed-okp-server.openstack-lightspeed.svc:8080
+            - name: POSTGRESQL_PASSWORD
               valueFrom:
                 secretKeyRef:
                   key: password
                   name: lightspeed-postgres-secret
-            - name: RH_SERVER_OKP
-              value: http://lightspeed-okp-server.openstack-lightspeed.svc:8080
+            - name: POSTGRESQL_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: lightspeed-postgres-secret
           volumeMounts:
             - name: ca-bundle
               mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem

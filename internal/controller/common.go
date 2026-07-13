@@ -18,7 +18,9 @@ package controller
 
 import (
 	"context"
+	"crypto/rand"
 	_ "embed"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -80,6 +82,16 @@ func getConfigMapResourceVersion(ctx context.Context, h *common_helper.Helper, n
 		return "", fmt.Errorf("failed to get configmap %s: %w", name, err)
 	}
 	return cm.ResourceVersion, nil
+}
+
+// getSecretResourceVersion retrieves the resource version of a Secret.
+func getSecretResourceVersion(ctx context.Context, h *common_helper.Helper, name string, namespace string) (string, error) {
+	secret := &corev1.Secret{}
+	err := h.GetClient().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, secret)
+	if err != nil {
+		return "", fmt.Errorf("failed to get secret %s: %w", name, err)
+	}
+	return secret.ResourceVersion, nil
 }
 
 // providerNameToEnvVarName converts a provider name to a valid environment variable name.
@@ -173,4 +185,18 @@ func getDeployment(ctx context.Context, h *common_helper.Helper, name string, na
 	}
 
 	return deployment, nil
+}
+
+// generateRandomString generates a random hex string of the given length.
+func generateRandomString(secretLength int) (string, error) {
+	// Ceiling division: hex.EncodeToString doubles the byte count, so we need ceil(secretLength/2) bytes.
+	randDataLen := (secretLength + 1) / 2
+
+	b := make([]byte, randDataLen)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("failed to generate secret: %w", err)
+	}
+
+	randString := hex.EncodeToString(b)
+	return randString[:secretLength], nil
 }
