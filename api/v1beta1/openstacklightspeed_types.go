@@ -186,9 +186,8 @@ type OpenStackLightspeedCore struct {
 	FeedbackEnabled *bool `json:"feedbackEnabled,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=true
 	// Enable conversation transcripts collection
-	TranscriptsEnabled *bool `json:"transcriptsEnabled,omitempty"`
+	TranscriptsEnabled bool `json:"transcriptsEnabled,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default={}

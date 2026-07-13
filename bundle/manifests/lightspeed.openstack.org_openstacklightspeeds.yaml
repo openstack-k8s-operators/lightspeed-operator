@@ -173,7 +173,6 @@ spec:
                 description: Configmap name containing a CA Certificates bundle
                 type: string
               transcriptsEnabled:
-                default: true
                 description: Enable conversation transcripts collection
                 type: boolean
             required:

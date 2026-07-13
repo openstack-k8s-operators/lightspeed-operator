@@ -101,7 +101,7 @@ func buildLCoreLlamaStackConfig() map[string]interface{} {
 
 func buildLCoreUserDataCollectionConfig(_ *common_helper.Helper, instance *apiv1beta1.OpenStackLightspeed) map[string]interface{} {
 	feedbackEnabled := instance.Spec.FeedbackEnabled == nil || *instance.Spec.FeedbackEnabled
-	transcriptsEnabled := instance.Spec.TranscriptsEnabled == nil || *instance.Spec.TranscriptsEnabled
+	transcriptsEnabled := instance.Spec.TranscriptsEnabled
 
 	return map[string]interface{}{
 		"feedback_enabled":    feedbackEnabled,
@@ -176,7 +176,7 @@ func buildLCoreConversationCacheConfig(h *common_helper.Helper, _ *apiv1beta1.Op
 
 // isDataCollectionEnabled returns true if at least one of feedback or transcripts is enabled.
 func isDataCollectionEnabled(instance *apiv1beta1.OpenStackLightspeed) bool {
-	return (instance.Spec.FeedbackEnabled == nil || *instance.Spec.FeedbackEnabled) || (instance.Spec.TranscriptsEnabled == nil || *instance.Spec.TranscriptsEnabled)
+	return (instance.Spec.FeedbackEnabled == nil || *instance.Spec.FeedbackEnabled) || instance.Spec.TranscriptsEnabled
 }
 
 // buildExporterConfigMap creates the ConfigMap for the dataverse exporter sidecar.
