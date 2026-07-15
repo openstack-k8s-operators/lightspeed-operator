@@ -1,0 +1,87 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+
+      NAMESPACE="openstack-lightspeed"
+      CONTAINER="lightspeed-service-api"
+      METRICS_PORT=8443
+      METRICS_PATH="/metrics"
+      SA_NAME="lightspeed-metrics-test"
+
+      echo "Creating test ServiceAccount and RBAC for metrics access..."
+      oc create serviceaccount "$SA_NAME" -n "$NAMESPACE" --dry-run=client -o yaml | oc apply -f -
+      cat <<EOF | oc apply -f -
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRole
+      metadata:
+        name: ${SA_NAME}-role
+      rules:
+      - nonResourceURLs: ["/ls-access"]
+        verbs: ["get"]
+      ---
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: ${SA_NAME}-binding
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: ${SA_NAME}-role
+      subjects:
+      - kind: ServiceAccount
+        name: ${SA_NAME}
+        namespace: ${NAMESPACE}
+      EOF
+
+      echo "Getting bearer token..."
+      TOKEN="$(oc create token "$SA_NAME" -n "$NAMESPACE")"
+
+      echo "Waiting for lightspeed-stack-deployment pod to be ready..."
+      oc wait --for=condition=Ready pod \
+        -l app.kubernetes.io/name=openstack-lightspeed-app-server \
+        -n "$NAMESPACE" \
+        --timeout=120s
+
+      echo "Getting pod name..."
+      POD_NAME="$(oc get pods \
+        -l app.kubernetes.io/name=openstack-lightspeed-app-server \
+        -n "$NAMESPACE" \
+        -o jsonpath='{.items[0].metadata.name}')"
+
+      if [ -z "$POD_NAME" ]; then
+        echo "ERROR: No pod found for lightspeed-app-server"
+        exit 1
+      fi
+
+      echo "Fetching metrics from pod $POD_NAME (container: $CONTAINER)..."
+      METRICS_OUTPUT="$(oc exec -n "$NAMESPACE" "$POD_NAME" \
+        -c "$CONTAINER" -- \
+        curl -sk -H "Authorization: Bearer ${TOKEN}" \
+        "https://localhost:${METRICS_PORT}${METRICS_PATH}")"
+
+      if [ -z "$METRICS_OUTPUT" ]; then
+        echo "ERROR: Empty response from /metrics endpoint"
+        exit 1
+      fi
+
+      echo "Validating response is valid Prometheus exposition format..."
+      if ! echo "$METRICS_OUTPUT" | grep -q "^# HELP "; then
+        echo "ERROR: Response does not contain Prometheus HELP declarations"
+        echo "Response (first 500 chars):"
+        echo "$METRICS_OUTPUT" | head -c 500
+        exit 1
+      fi
+
+      if ! echo "$METRICS_OUTPUT" | grep -q "^# TYPE "; then
+        echo "ERROR: Response does not contain Prometheus TYPE declarations"
+        echo "Response (first 500 chars):"
+        echo "$METRICS_OUTPUT" | head -c 500
+        exit 1
+      fi
+
+      echo "Metrics endpoint is reachable and returns valid Prometheus format"
+    timeout: 180
