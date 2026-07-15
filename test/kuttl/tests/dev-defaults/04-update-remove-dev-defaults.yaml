@@ -1,0 +1,8 @@
+---
+apiVersion: lightspeed.openstack.org/v1beta1
+kind: OpenStackLightspeed
+metadata:
+  name: openstack-lightspeed
+  namespace: openstack-lightspeed
+spec:
+  maxTokensForResponse: 0

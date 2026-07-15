@@ -1,0 +1,28 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+
+      # Poll until the ConfigMap has max_tokens: 2048.
+      # Check the ConfigMap directly rather than exec-ing into a pod to avoid
+      # rollout timing issues (old pod still Running during deployment rollout).
+      # The full chain (ConfigMap -> init container -> pod) is validated in step 03.
+      for i in $(seq 1 60); do
+        MAX_TOKENS=$(oc get configmap llama-stack-config -n openstack-lightspeed \
+          -o jsonpath='{.data.ogx_config\.yaml}' 2>/dev/null | \
+          grep 'max_tokens:' | head -1 | awk '{print $2}' || true)
+
+        if [ "$MAX_TOKENS" = "2048" ]; then
+          echo "max_tokens correctly reverted to 2048"
+          exit 0
+        fi
+
+        sleep 2
+      done
+
+      echo "ERROR: Expected max_tokens: 2048 in ConfigMap, got: $MAX_TOKENS"
+      exit 1
+    timeout: 180
