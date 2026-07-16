@@ -256,6 +256,9 @@ spec:
               mountPath: /vector-db-discovered-values
             - name: llama-cache
               mountPath: /tmp/llama-stack
+            - name: vector-db-scripts
+              mountPath: /scripts
+              readOnly: true
         - name: lightspeed-service-api
           resources:
             requests:
