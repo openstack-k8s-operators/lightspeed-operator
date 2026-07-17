@@ -18,5 +18,11 @@ http {
         ssl_certificate     /var/cert/tls.crt;
         ssl_certificate_key /var/cert/tls.key;
         root                /usr/share/nginx/html;
+        # Prevent this plugin from being embedded in an iframe (clickjacking protection).
+        add_header X-Frame-Options "DENY" always;
+        # Prevent browsers from MIME-sniffing JS/CSS assets away from their declared content-type.
+        add_header X-Content-Type-Options "nosniff" always;
+        # Only send the origin (no path or query) in the Referer header on cross-origin requests.
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     }
 }

@@ -171,6 +171,10 @@ func buildPostgresPodTemplateSpec() corev1.PodTemplateSpec {
 					SecurityContext: &corev1.SecurityContext{
 						AllowPrivilegeEscalation: &[]bool{false}[0],
 						ReadOnlyRootFilesystem:   &[]bool{true}[0],
+						RunAsNonRoot:             &[]bool{true}[0],
+						Capabilities: &corev1.Capabilities{
+							Drop: []corev1.Capability{"ALL"},
+						},
 					},
 					StartupProbe:   buildPostgresProbe(PostgresStartupProbePeriodSeconds, PostgresStartupProbeTimeoutSeconds, PostgresStartupProbeFailureThreshold, PostgresStartupProbeInitialDelaySeconds),
 					LivenessProbe:  buildPostgresProbe(PostgresLivenessProbePeriodSeconds, PostgresLivenessProbeTimeoutSeconds, PostgresLivenessProbeFailureThreshold, 0),

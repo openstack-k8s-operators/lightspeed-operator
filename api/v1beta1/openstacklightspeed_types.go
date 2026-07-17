@@ -116,6 +116,7 @@ type OpenStackLightspeedSpec struct {
 type LoggingConfig struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="all=info"
+	// +kubebuilder:validation:Pattern=`^\w+(?:=\w+)?(?:,\w+(?:=\w+)?)*$`
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="OGX Log Level"
 	// Log level configuration for the OGX/llama-stack container. Supports standard levels (INFO, DEBUG) or fine-grained control using format "component=level,component=level" (e.g., "core=debug,providers=info").
 	OGXLogLevel string `json:"ogxLogLevel,omitempty"`
@@ -138,6 +139,7 @@ type LoggingConfig struct {
 // OpenStackLightspeedCore defines the desired state of OpenStackLightspeed
 type OpenStackLightspeedCore struct {
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern=`^https?://.+`
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="LLM Endpoint"
 	// URL pointing to the LLM
 	LLMEndpoint string `json:"llmEndpoint"`
@@ -165,6 +167,7 @@ type OpenStackLightspeedCore struct {
 	TLSCACertBundle string `json:"tlsCACertBundle"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=1
 	// MaxTokensForResponse defines the maximum number of tokens to be used for the response generation
 	MaxTokensForResponse int `json:"maxTokensForResponse,omitempty"`
 
