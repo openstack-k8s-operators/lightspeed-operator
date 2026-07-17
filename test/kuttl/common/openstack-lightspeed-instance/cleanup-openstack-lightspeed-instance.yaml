@@ -10,4 +10,14 @@ delete:
     kind: PersistentVolumeClaim
     name: openstack-lightspeed-database
     namespace: openstack-lightspeed
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    name: lightspeed-metrics-test-binding
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    name: lightspeed-metrics-test-role
+  - apiVersion: v1
+    kind: ServiceAccount
+    name: lightspeed-metrics-test
+    namespace: openstack-lightspeed
 

@@ -114,3 +114,21 @@ kind: ConfigMap
 metadata:
   name: vector-db-scripts
   namespace: openstack-lightspeed
+
+# Metrics test RBAC resources should be gone
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: lightspeed-metrics-test-binding
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: lightspeed-metrics-test-role
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: lightspeed-metrics-test
+  namespace: openstack-lightspeed
