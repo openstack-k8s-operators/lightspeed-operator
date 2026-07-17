@@ -12,31 +12,6 @@ commands:
       METRICS_PATH="/metrics"
       SA_NAME="lightspeed-metrics-test"
 
-      echo "Creating test ServiceAccount and RBAC for metrics access..."
-      oc create serviceaccount "$SA_NAME" -n "$NAMESPACE" --dry-run=client -o yaml | oc apply -f -
-      cat <<EOF | oc apply -f -
-      apiVersion: rbac.authorization.k8s.io/v1
-      kind: ClusterRole
-      metadata:
-        name: ${SA_NAME}-role
-      rules:
-      - nonResourceURLs: ["/ls-access"]
-        verbs: ["get"]
-      ---
-      apiVersion: rbac.authorization.k8s.io/v1
-      kind: ClusterRoleBinding
-      metadata:
-        name: ${SA_NAME}-binding
-      roleRef:
-        apiGroup: rbac.authorization.k8s.io
-        kind: ClusterRole
-        name: ${SA_NAME}-role
-      subjects:
-      - kind: ServiceAccount
-        name: ${SA_NAME}
-        namespace: ${NAMESPACE}
-      EOF
-
       echo "Getting bearer token..."
       TOKEN="$(oc create token "$SA_NAME" -n "$NAMESPACE")"
 
@@ -78,6 +53,13 @@ commands:
 
       if ! echo "$METRICS_OUTPUT" | grep -q "^# TYPE "; then
         echo "ERROR: Response does not contain Prometheus TYPE declarations"
+        echo "Response (first 500 chars):"
+        echo "$METRICS_OUTPUT" | head -c 500
+        exit 1
+      fi
+
+      if ! echo "$METRICS_OUTPUT" | grep -q "^# TYPE ls_llm_calls_total "; then
+        echo "ERROR: Missing expected lightspeed metric: ls_llm_calls_total"
         echo "Response (first 500 chars):"
         echo "$METRICS_OUTPUT" | head -c 500
         exit 1
