@@ -15,6 +15,29 @@ spec:
   # database:
   #   size: "5Gi"
   #   class: "my-storage-class"
+  # Uncomment to customize container resource requests/limits:
+  # resources:
+  #   llamaStack:
+  #     requests:
+  #       cpu: "500m"
+  #       memory: "2Gi"
+  #     limits:
+  #       cpu: "2"
+  #       memory: "8Gi"
+  #   lightspeedService:
+  #     requests:
+  #       cpu: "250m"
+  #       memory: "512Mi"
+  #     limits:
+  #       cpu: "1"
+  #       memory: "2Gi"
+  #   postgres:
+  #     requests:
+  #       cpu: "30m"
+  #       memory: "300Mi"
+  #     limits:
+  #       cpu: "500m"
+  #       memory: "2Gi"
   # Uncomment to customize log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL):
   # logging:
   #   ogxLogLevel: "all=info"

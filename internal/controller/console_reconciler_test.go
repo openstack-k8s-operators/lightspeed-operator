@@ -48,7 +48,10 @@ var _ = Describe("Console Plugin", func() {
 		var spec appsv1.DeploymentSpec
 
 		BeforeEach(func() {
-			spec = buildConsoleDeploymentSpec(apiv1beta1.OpenStackLightspeedDefaultValues.ConsoleImagePF5URL)
+			instance := &apiv1beta1.OpenStackLightspeed{
+				Spec: apiv1beta1.OpenStackLightspeedSpec{},
+			}
+			spec = buildConsoleDeploymentSpec(apiv1beta1.OpenStackLightspeedDefaultValues.ConsoleImagePF5URL, instance)
 		})
 
 		It("should have one replica", func() {

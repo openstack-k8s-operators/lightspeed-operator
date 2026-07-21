@@ -181,7 +181,7 @@ func resolveConsoleImage(ctx context.Context, h *common_helper.Helper) string {
 }
 
 // reconcileConsoleDeploymentResource ensures the console plugin deployment exists.
-func reconcileConsoleDeploymentResource(h *common_helper.Helper, ctx context.Context, _ *apiv1beta1.OpenStackLightspeed) error {
+func reconcileConsoleDeploymentResource(h *common_helper.Helper, ctx context.Context, instance *apiv1beta1.OpenStackLightspeed) error {
 	logger := h.GetLogger()
 
 	consoleImage := resolveConsoleImage(ctx, h)
@@ -194,7 +194,7 @@ func reconcileConsoleDeploymentResource(h *common_helper.Helper, ctx context.Con
 	}
 
 	result, err := controllerutil.CreateOrPatch(ctx, h.GetClient(), deployment, func() error {
-		spec := buildConsoleDeploymentSpec(consoleImage)
+		spec := buildConsoleDeploymentSpec(consoleImage, instance)
 		deployment.Spec.Replicas = spec.Replicas
 		deployment.Spec.Selector = spec.Selector
 		deployment.Spec.Template = spec.Template

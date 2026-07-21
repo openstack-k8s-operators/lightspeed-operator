@@ -20,10 +20,10 @@ import (
 	"fmt"
 
 	consolev1 "github.com/openshift/api/console/v1"
+	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -48,7 +48,9 @@ const consoleLocalesPath = "/usr/share/nginx/html/locales/en/" + consoleLocalesF
 // buildConsoleDeploymentSpec builds the Deployment spec for the console plugin.
 // Includes an init container that rewrites OpenShift references to OpenStack
 // in the locales JSON file using an emptyDir volume.
-func buildConsoleDeploymentSpec(consoleImage string) appsv1.DeploymentSpec {
+func buildConsoleDeploymentSpec(consoleImage string, instance *apiv1beta1.OpenStackLightspeed) appsv1.DeploymentSpec {
+	consoleRes := instance.Spec.Resources.ConsolePlugin
+
 	replicas := int32(1)
 	volumeDefaultMode := VolumeDefaultMode
 	labels := generateConsoleSelectorLabels()
@@ -86,16 +88,7 @@ func buildConsoleDeploymentSpec(consoleImage string) appsv1.DeploymentSpec {
 							"awk '" + consoleLocalesRewriteAwk + "' " +
 								consoleLocalesPath + " > /locales-rewrite/" + consoleLocalesFilename,
 						},
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								corev1.ResourceCPU:    resource.MustParse("50m"),
-								corev1.ResourceMemory: resource.MustParse("64Mi"),
-							},
-							Limits: corev1.ResourceList{
-								corev1.ResourceCPU:    resource.MustParse("200m"),
-								corev1.ResourceMemory: resource.MustParse("256Mi"),
-							},
-						},
+						Resources: consoleRes,
 						VolumeMounts: []corev1.VolumeMount{
 							{
 								Name:      "locales-rewrite",
@@ -119,16 +112,7 @@ func buildConsoleDeploymentSpec(consoleImage string) appsv1.DeploymentSpec {
 						SecurityContext: &corev1.SecurityContext{
 							AllowPrivilegeEscalation: toPtr(false),
 						},
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								corev1.ResourceCPU:    resource.MustParse("50m"),
-								corev1.ResourceMemory: resource.MustParse("64Mi"),
-							},
-							Limits: corev1.ResourceList{
-								corev1.ResourceCPU:    resource.MustParse("200m"),
-								corev1.ResourceMemory: resource.MustParse("256Mi"),
-							},
-						},
+						Resources: consoleRes,
 						VolumeMounts: []corev1.VolumeMount{
 							{
 								Name:      "lightspeed-console-plugin-cert",

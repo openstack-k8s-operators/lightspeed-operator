@@ -307,7 +307,7 @@ func reconcilePostgresDeploymentTask(h *common_helper.Helper, ctx context.Contex
 		}
 
 		// Build the desired deployment pod spec
-		podTemplateSpec := buildPostgresPodTemplateSpec()
+		podTemplateSpec := buildPostgresPodTemplateSpec(instance)
 
 		// Initialize annotations map if needed
 		if podTemplateSpec.Annotations == nil {
