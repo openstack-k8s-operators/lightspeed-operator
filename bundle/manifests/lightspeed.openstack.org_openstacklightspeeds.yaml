@@ -94,6 +94,7 @@ spec:
                 type: string
               llmEndpoint:
                 description: URL pointing to the LLM
+                pattern: ^https?://.+
                 type: string
               llmEndpointType:
                 description: Type of the provider serving the LLM
@@ -141,11 +142,13 @@ spec:
                     description: Log level configuration for the OGX/llama-stack container.
                       Supports standard levels (INFO, DEBUG) or fine-grained control
                       using format "component=level,component=level" (e.g., "core=debug,providers=info").
+                    pattern: ^\w+(?:=\w+)?(?:,\w+(?:=\w+)?)*$
                     type: string
                 type: object
               maxTokensForResponse:
                 description: MaxTokensForResponse defines the maximum number of tokens
                   to be used for the response generation
+                minimum: 1
                 type: integer
               modelName:
                 description: Name of the model to use at the API endpoint provided

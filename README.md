@@ -169,8 +169,10 @@ If you are making changes to the operator you can run the operator locally
 (outside the cluster) using the Operator SDK make targets:
 
 ```bash
-make install run
+make install run ARGS="--zap-devel"
 ```
+
+Note: `--zap-devel` enable verbose (development) logging locally.
 
 This will:
 

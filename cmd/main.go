@@ -92,7 +92,9 @@ func main() {
 	flag.StringVar(&keyName, "key-name", "tls.key",
 		"The name of the TLS key file.")
 	opts := zap.Options{
-		Development: true,
+		// Development: false uses JSON encoding and omits stack traces / DPanic behaviour.
+		// For local development use: make run ARGS="--zap-devel"
+		Development: false,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
