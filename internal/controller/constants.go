@@ -235,6 +235,10 @@ const (
 	// script is stored in the ConfigMap containing vector database init scripts.
 	VectorDBBuildScriptKey = "vector_database_build.py"
 
+	// LlamaStartupWrapperKey is the ConfigMap key for the startup wrapper script
+	// that monkey-patches the asyncpg event loop bug fix. Remove with PR #5837 backport.
+	LlamaStartupWrapperKey = "llama_startup_wrapper.py" // #nosec G101 -- ConfigMap key, not a credential
+
 	// Resource Version Annotation
 	// These constants define annotation keys used to track the resource versions of specific ConfigMaps.
 	// By recording the resource version of a ConfigMap in a Deployment, StatefulSet, or similar resource,
@@ -349,6 +353,13 @@ var vectorDatabaseCollectScript string
 //
 //go:embed assets/vector_database_build.py
 var vectorDatabaseBuildScript string
+
+// llamaStartupWrapperScript is a Python monkey-patch that fixes the asyncpg
+// event loop bug (ogx-ai/ogx#5978) by resetting SQL engines after StackApp
+// initialization. Remove when the container image includes upstream PR #5837.
+//
+//go:embed assets/llama_startup_wrapper.py
+var llamaStartupWrapperScript string
 
 //go:embed assets/console_nginx.conf.tmpl
 var consoleNginxConfigTemplate string

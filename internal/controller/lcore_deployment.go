@@ -63,11 +63,16 @@ func buildLCorePodTemplateSpec(h *common_helper.Helper, ctx context.Context, ins
 	llamaStackMounts := []corev1.VolumeMount{}
 	llamaStackMounts = append(llamaStackMounts, sharedMounts...)
 	llamaStackMounts = append(llamaStackMounts, llamaCacheMounts...)
+	llamaStackMounts = append(llamaStackMounts, corev1.VolumeMount{
+		Name:      VectorDBScriptsVolumeName,
+		MountPath: VectorDBScriptsMountPath,
+		ReadOnly:  true,
+	})
 
 	llamaStackContainer := corev1.Container{
 		Name:         "llama-stack",
 		Image:        apiv1beta1.OpenStackLightspeedDefaultValues.LCoreImageURL,
-		Command:      []string{"llama", "stack", "run", VectorDBVolumeOGXConfigPath},
+		Command:      []string{"python3", VectorDBScriptsMountPath + "/" + LlamaStartupWrapperKey, "stack", "run", VectorDBVolumeOGXConfigPath},
 		Ports:        []corev1.ContainerPort{{Name: "llama-stack", ContainerPort: LlamaStackContainerPort}},
 		VolumeMounts: llamaStackMounts,
 		Env:          llamaEnvVars,
