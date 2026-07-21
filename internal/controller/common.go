@@ -20,10 +20,10 @@ import (
 	"context"
 	"crypto/rand"
 	_ "embed"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 
 	common_helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
@@ -187,16 +187,46 @@ func getDeployment(ctx context.Context, h *common_helper.Helper, name string, na
 	return deployment, nil
 }
 
-// generateRandomString generates a random hex string of the given length.
+// generateRandomString generates a random alphanumeric string of the given length containing at
+// least one lowercase letter, one uppercase letter, and one digit. Minimum required secretLength
+// is 16.
 func generateRandomString(secretLength int) (string, error) {
-	// Ceiling division: hex.EncodeToString doubles the byte count, so we need ceil(secretLength/2) bytes.
-	randDataLen := (secretLength + 1) / 2
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	const charsetLen = len(charset)
+	const minLength = 16
+	const maxIterations = 1000
 
-	b := make([]byte, randDataLen)
-	if _, err := rand.Read(b); err != nil {
-		return "", fmt.Errorf("failed to generate secret: %w", err)
+	if secretLength < minLength {
+		return "", fmt.Errorf("secret length must be at least %d", minLength)
 	}
 
-	randString := hex.EncodeToString(b)
-	return randString[:secretLength], nil
+	for range maxIterations {
+
+		randPassword := make([]byte, secretLength)
+		var hasLowerCase, hasUpperCase, hasNumber bool
+
+		for passwdCharIdx := range secretLength {
+			idx, err := rand.Int(rand.Reader, big.NewInt(int64(charsetLen)))
+			if err != nil {
+				return "", fmt.Errorf("failed to generate secret: %w", err)
+			}
+
+			passwdChar := charset[idx.Int64()]
+			if passwdChar >= 'a' && passwdChar <= 'z' {
+				hasLowerCase = true
+			} else if passwdChar >= 'A' && passwdChar <= 'Z' {
+				hasUpperCase = true
+			} else if passwdChar >= '0' && passwdChar <= '9' {
+				hasNumber = true
+			}
+
+			randPassword[passwdCharIdx] = passwdChar
+		}
+
+		if hasLowerCase && hasUpperCase && hasNumber {
+			return string(randPassword), nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to generate secret: exceeded iterations - %d", maxIterations)
 }

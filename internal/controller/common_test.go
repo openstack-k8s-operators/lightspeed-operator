@@ -21,42 +21,20 @@ import (
 )
 
 func TestGenerateRandomStringLength(t *testing.T) {
+	t.Run("Below minimum length returns error", func(t *testing.T) {
+		_, err := generateRandomString(15)
+		if err == nil {
+			t.Error("generateRandomString(15) expected error, got nil")
+		}
+	})
+
 	tests := []struct {
 		name   string
 		length int
 	}{
-		{
-			name:   "Zero length",
-			length: 0,
-		},
-		{
-			name:   "Odd length 1",
-			length: 1,
-		},
-		{
-			name:   "Even length 2",
-			length: 2,
-		},
-		{
-			name:   "Odd length 7",
-			length: 7,
-		},
-		{
-			name:   "Even length 8",
-			length: 8,
-		},
-		{
-			name:   "Odd length 15",
-			length: 15,
-		},
-		{
-			name:   "Even length 16",
-			length: 16,
-		},
-		{
-			name:   "Even length 32",
-			length: 32,
-		},
+		{name: "Min length 16", length: 16},
+		{name: "Even length 32", length: 32},
+		{name: "Odd length 33", length: 33},
 	}
 
 	for _, tt := range tests {
@@ -72,15 +50,33 @@ func TestGenerateRandomStringLength(t *testing.T) {
 	}
 }
 
-func TestGenerateRandomStringHexCharacters(t *testing.T) {
+func TestGenerateRandomStringCharacters(t *testing.T) {
 	result, err := generateRandomString(32)
 	if err != nil {
 		t.Fatalf("generateRandomString(32) unexpected error: %v", err)
 	}
+
+	var hasLower, hasUpper, hasDigit bool
 	for i, c := range result {
-		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
-			t.Errorf("generateRandomString(32) character at index %d is %q, not a lowercase hex character", i, c)
+		switch {
+		case c >= 'a' && c <= 'z':
+			hasLower = true
+		case c >= 'A' && c <= 'Z':
+			hasUpper = true
+		case c >= '0' && c <= '9':
+			hasDigit = true
+		default:
+			t.Errorf("generateRandomString(32) character at index %d is %q, not alphanumeric", i, c)
 		}
+	}
+	if !hasLower {
+		t.Error("generateRandomString(32) result has no lowercase letter")
+	}
+	if !hasUpper {
+		t.Error("generateRandomString(32) result has no uppercase letter")
+	}
+	if !hasDigit {
+		t.Error("generateRandomString(32) result has no digit")
 	}
 }
 
