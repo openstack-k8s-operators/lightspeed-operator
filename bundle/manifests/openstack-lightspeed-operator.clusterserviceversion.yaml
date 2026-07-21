@@ -25,7 +25,7 @@ metadata:
       ]
     capabilities: Basic Install
     categories: AI/Machine Learning
-    createdAt: "2026-07-13T09:32:13Z"
+    createdAt: "2026-07-21T15:55:56Z"
     description: AI-powered virtual assistant for Red Hat OpenStack Services on OpenShift
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -177,7 +177,6 @@ spec:
           verbs:
           - get
           - list
-          - watch
         - apiGroups:
           - console.openshift.io
           resources:
@@ -188,19 +187,15 @@ spec:
           - get
           - list
           - patch
-          - update
           - watch
         - apiGroups:
           - lightspeed.openstack.org
           resources:
           - openstacklightspeeds
           verbs:
-          - create
-          - delete
           - get
           - list
           - patch
-          - update
           - watch
         - apiGroups:
           - lightspeed.openstack.org
@@ -213,9 +208,7 @@ spec:
           resources:
           - openstacklightspeeds/status
           verbs:
-          - get
           - patch
-          - update
         - apiGroups:
           - operator.openshift.io
           resources:
@@ -240,12 +233,10 @@ spec:
           - clusterroles
           verbs:
           - create
-          - delete
           - deletecollection
           - get
           - list
           - patch
-          - update
           - watch
         - apiGroups:
           - authentication.k8s.io
@@ -380,25 +371,24 @@ spec:
           - ""
           resources:
           - configmaps
-          - services
           verbs:
           - create
           - delete
           - get
           - list
           - patch
-          - update
           - watch
         - apiGroups:
           - ""
           resources:
           - persistentvolumeclaims
+          - serviceaccounts
+          - services
           verbs:
           - create
           - get
           - list
           - patch
-          - update
           - watch
         - apiGroups:
           - ""
@@ -406,19 +396,7 @@ spec:
           - secrets
           verbs:
           - create
-          - delete
           - deletecollection
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - serviceaccounts
-          verbs:
-          - create
           - get
           - list
           - patch
@@ -429,11 +407,9 @@ spec:
           - deployments
           verbs:
           - create
-          - delete
           - get
           - list
           - patch
-          - update
           - watch
         - apiGroups:
           - networking.k8s.io
@@ -444,7 +420,6 @@ spec:
           - get
           - list
           - patch
-          - update
           - watch
         - apiGroups:
           - operators.coreos.com
@@ -452,7 +427,6 @@ spec:
           - clusterserviceversions
           verbs:
           - delete
-          - patch
           - update
         serviceAccountName: openstack-lightspeed-operator-controller-manager
     strategy: deployment
