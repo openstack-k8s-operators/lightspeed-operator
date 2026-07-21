@@ -37,12 +37,9 @@ rules:
   resources:
   - openstacklightspeeds
   verbs:
-  - create
-  - delete
   - get
   - list
   - patch
-  - update
   - watch
 - apiGroups:
   - lightspeed.openstack.org
@@ -55,9 +52,7 @@ rules:
   resources:
   - openstacklightspeeds/status
   verbs:
-  - get
   - patch
-  - update
 - apiGroups:
   - operator.openshift.io
   resources:
@@ -172,5 +167,4 @@ rules:
   - clusterserviceversions
   verbs:
   - delete
-  - patch
   - update
