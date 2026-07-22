@@ -1,0 +1,17 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+# Script: CRDs must be Established before CRs can be created; kuttl applies all step manifests simultaneously
+commands:
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+      oc apply -f ../../common/mock-openstack/oscp-crd.yaml
+      oc apply -f ../../common/mock-openstack/kac-crd.yaml
+      oc wait --for=condition=Established \
+        crd/openstackcontrolplanes.core.openstack.org \
+        crd/keystoneapplicationcredentials.keystone.openstack.org \
+        --timeout=60s
+      oc apply -f ../../common/mock-openstack/mock-keystone.yaml
+      oc apply -f ../../common/mock-openstack/mock-oscp-resources.yaml
+    timeout: 300

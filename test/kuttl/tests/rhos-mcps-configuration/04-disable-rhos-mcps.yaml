@@ -1,0 +1,21 @@
+---
+apiVersion: lightspeed.openstack.org/v1beta1
+kind: OpenStackLightspeed
+metadata:
+  name: openstack-lightspeed
+  namespace: openstack-lightspeed
+spec:
+  llmEndpoint: http://mock-llm-api-server-pod:8000/v1
+  llmEndpointType: openai
+  llmCredentials: openstack-lightspeed-apitoken
+  modelName: ibm-granite/granite-3.1-8b-instruct
+  tlsCACertBundle: openstack-lightspeed-cert
+  llmProjectID: test-project-id
+  llmDeploymentName: test-deployment-name
+  llmAPIVersion: v1
+  logging:
+    ogxLogLevel: DEBUG
+    lightspeedStackLogLevel: WARNING
+    dataverseExporterLogLevel: DEBUG
+  dev:
+    featureFlags: []

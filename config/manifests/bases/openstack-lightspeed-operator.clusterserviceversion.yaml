@@ -87,6 +87,9 @@ spec:
       - kind: ConfigMap
         name: llama-stack-config
         version: v1
+      - kind: ConfigMap
+        name: mcp-config
+        version: v1
       - kind: Secret
         name: metrics-reader-token
         version: v1

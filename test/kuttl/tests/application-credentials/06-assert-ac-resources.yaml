@@ -1,0 +1,32 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: lightspeed-password
+  namespace: openstack
+---
+apiVersion: keystone.openstack.org/v1beta1
+kind: KeystoneApplicationCredential
+metadata:
+  name: lightspeed
+  namespace: openstack
+  annotations:
+    keystone.openstack.org/edpm-service: "false"
+spec:
+  userName: lightspeed
+  secret: lightspeed-password
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 180
+# Script: kuttl YAML asserts can match exact values but cannot express "field is non-empty"
+commands:
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+      PW=$(oc get secret lightspeed-password -n openstack \
+        -o jsonpath='{.data.password}' | base64 -d)
+      if [ -z "$PW" ]; then
+        echo "ERROR: Password secret has empty password key"
+        exit 1
+      fi

@@ -79,6 +79,28 @@ spec:
                 default: true
                 description: Enable feedback collection
                 type: boolean
+              images:
+                description: |-
+                  Images configures container images used by the operator.
+                  When omitted, each image defaults to its environment variable or hardcoded fallback.
+                properties:
+                  consoleImage:
+                    type: string
+                  consoleImagePF5:
+                    type: string
+                  exporterImage:
+                    type: string
+                  lcoreImage:
+                    type: string
+                  mcpServerImage:
+                    type: string
+                  okpImage:
+                    type: string
+                  postgresImage:
+                    type: string
+                  ragImage:
+                    type: string
+                type: object
               llmAPIVersion:
                 description: LLM API Version for LLM providers that require it (e.g.,
                   Microsoft Azure OpenAI)
@@ -187,6 +209,11 @@ spec:
           status:
             description: OpenStackLightspeedStatus defines the observed state of OpenStackLightspeed
             properties:
+              applicationCredentialSecret:
+                description: |-
+                  ApplicationCredentialSecret is the name of the current AC secret in the
+                  OpenStack namespace. Tracked for rotation detection.
+                type: string
               conditions:
                 description: Conditions
                 items:
@@ -234,6 +261,11 @@ spec:
                   for this object.
                 format: int64
                 type: integer
+              openStackReady:
+                description: |-
+                  OpenStackReady indicates whether an OpenStackControlPlane was detected and
+                  is ready. When true, the OpenStack MCP tools are included in lightspeed-stack config.
+                type: boolean
             type: object
         type: object
     served: true

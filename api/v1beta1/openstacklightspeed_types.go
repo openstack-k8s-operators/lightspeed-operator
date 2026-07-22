@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"reflect"
+
 	"github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -45,6 +47,9 @@ const (
 
 	// OKPContainerImage is the fall-back container image for OKP (Offline Knowledge Portal)
 	OKPContainerImage = "registry.redhat.io/offline-knowledge-portal/rhokp-rhel9:latest"
+
+	// MCPServerContainerImage is the fall-back container image for the MCP server
+	MCPServerContainerImage = "quay.io/openstack-lightspeed/rhos-mcps:latest"
 
 	// MaxTokensForResponseDefault is the default maximum number of tokens that should be used for response
 	MaxTokensForResponseDefault = 2048
@@ -94,6 +99,11 @@ type DatabaseSpec struct {
 // OpenStackLightspeedSpec defines the desired state of OpenStackLightspeed
 type OpenStackLightspeedSpec struct {
 	OpenStackLightspeedCore `json:",inline"`
+
+	// +kubebuilder:validation:Optional
+	// Images configures container images used by the operator.
+	// When omitted, each image defaults to its environment variable or hardcoded fallback.
+	Images OpenStackLightspeedImages `json:"images,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// Database configures persistent storage for PostgreSQL data.
@@ -205,6 +215,16 @@ type OpenStackLightspeedStatus struct {
 
 	// ObservedGeneration - the most recent generation observed for this object.
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// +optional
+	// OpenStackReady indicates whether an OpenStackControlPlane was detected and
+	// is ready. When true, the OpenStack MCP tools are included in lightspeed-stack config.
+	OpenStackReady bool `json:"openStackReady,omitempty"`
+
+	// +optional
+	// ApplicationCredentialSecret is the name of the current AC secret in the
+	// OpenStack namespace. Tracked for rotation detection.
+	ApplicationCredentialSecret string `json:"applicationCredentialSecret,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -229,6 +249,7 @@ type OpenStackLightspeedStatus struct {
 // +operator-sdk:csv:customresourcedefinitions:resources={{PersistentVolumeClaim,v1,openstack-lightspeed-database}}
 // +operator-sdk:csv:customresourcedefinitions:resources={{ClusterRole,v1,lightspeed-app-server-sar-role}}
 // +operator-sdk:csv:customresourcedefinitions:resources={{ClusterRoleBinding,v1,lightspeed-app-server-sar-role-binding}}
+// +operator-sdk:csv:customresourcedefinitions:resources={{ConfigMap,v1,mcp-config}}
 // +operator-sdk:csv:customresourcedefinitions:resources={{Subscription,v1alpha1}}
 // +operator-sdk:csv:customresourcedefinitions:resources={{ClusterServiceVersion,v1alpha1}}
 // +operator-sdk:csv:customresourcedefinitions:resources={{InstallPlan,v1alpha1}}
@@ -260,39 +281,74 @@ func (instance OpenStackLightspeed) IsReady() bool {
 	return instance.Status.Conditions.IsTrue(OpenStackLightspeedReadyCondition)
 }
 
+// OpenStackLightspeedImages groups container image URLs used by the operator.
+type OpenStackLightspeedImages struct {
+	RAGImageURL        string `json:"ragImage,omitempty"`
+	LCoreImageURL      string `json:"lcoreImage,omitempty"`
+	ExporterImageURL   string `json:"exporterImage,omitempty"`
+	PostgresImageURL   string `json:"postgresImage,omitempty"`
+	ConsoleImageURL    string `json:"consoleImage,omitempty"`
+	ConsoleImagePF5URL string `json:"consoleImagePF5,omitempty"`
+	OKPImageURL        string `json:"okpImage,omitempty"`
+	MCPServerImageURL  string `json:"mcpServerImage,omitempty"`
+}
+
 type OpenStackLightspeedDefaults struct {
-	RAGImageURL          string
-	LCoreImageURL        string
-	ExporterImageURL     string
-	PostgresImageURL     string
-	ConsoleImageURL      string
-	ConsoleImagePF5URL   string
-	OKPImageURL          string
-	MaxTokensForResponse int
+	OpenStackLightspeedImages `json:",inline"`
+	MaxTokensForResponse      int `json:"maxTokensForResponse,omitempty"`
 }
 
 var OpenStackLightspeedDefaultValues OpenStackLightspeedDefaults
 
-// SetupDefaults - initializes OpenStackLightspeedDefaultValues with default values from env vars
+// envVarDefaults holds the pristine env-var defaults set once by SetupDefaults.
+// MergeDefaults copies from this so that removing dev overrides correctly
+// reverts to the original values (the exported global gets overwritten each reconcile).
+var envVarDefaults OpenStackLightspeedDefaults
+
+// mergeImages applies non-zero fields from src onto dst.
+func mergeImages(dst, src *OpenStackLightspeedImages) {
+	dstVal := reflect.ValueOf(dst).Elem()
+	srcVal := reflect.ValueOf(src).Elem()
+	for i := 0; i < srcVal.NumField(); i++ {
+		if !srcVal.Field(i).IsZero() {
+			dstVal.Field(i).Set(srcVal.Field(i))
+		}
+	}
+}
+
+// SetupDefaults initializes OpenStackLightspeedDefaultValues from env vars.
+// Call once at startup; the values never change inside a container.
 func SetupDefaults() {
-	// Acquire environmental defaults and initialize OpenStackLightspeed defaults with them
-	openStackLightspeedDefaults := OpenStackLightspeedDefaults{
-		RAGImageURL: util.GetEnvVar(
-			"RELATED_IMAGE_OPENSTACK_LIGHTSPEED_IMAGE_URL_DEFAULT", OpenStackLightspeedContainerImage),
-		LCoreImageURL: util.GetEnvVar(
-			"RELATED_IMAGE_LCORE_IMAGE_URL_DEFAULT", LCoreContainerImage),
-		ExporterImageURL: util.GetEnvVar(
-			"RELATED_IMAGE_EXPORTER_IMAGE_URL_DEFAULT", ExporterContainerImage),
-		PostgresImageURL: util.GetEnvVar(
-			"RELATED_IMAGE_POSTGRES_IMAGE_URL_DEFAULT", PostgresContainerImage),
-		ConsoleImageURL: util.GetEnvVar(
-			"RELATED_IMAGE_CONSOLE_IMAGE_URL_DEFAULT", ConsoleContainerImage),
-		ConsoleImagePF5URL: util.GetEnvVar(
-			"RELATED_IMAGE_CONSOLE_PF5_IMAGE_URL_DEFAULT", ConsoleContainerImagePF5),
-		OKPImageURL: util.GetEnvVar(
-			"RELATED_IMAGE_OKP_IMAGE_URL_DEFAULT", OKPContainerImage),
+	envVarDefaults = OpenStackLightspeedDefaults{
+		OpenStackLightspeedImages: OpenStackLightspeedImages{
+			RAGImageURL: util.GetEnvVar(
+				"RELATED_IMAGE_OPENSTACK_LIGHTSPEED_IMAGE_URL_DEFAULT", OpenStackLightspeedContainerImage),
+			LCoreImageURL: util.GetEnvVar(
+				"RELATED_IMAGE_LCORE_IMAGE_URL_DEFAULT", LCoreContainerImage),
+			ExporterImageURL: util.GetEnvVar(
+				"RELATED_IMAGE_EXPORTER_IMAGE_URL_DEFAULT", ExporterContainerImage),
+			PostgresImageURL: util.GetEnvVar(
+				"RELATED_IMAGE_POSTGRES_IMAGE_URL_DEFAULT", PostgresContainerImage),
+			ConsoleImageURL: util.GetEnvVar(
+				"RELATED_IMAGE_CONSOLE_IMAGE_URL_DEFAULT", ConsoleContainerImage),
+			ConsoleImagePF5URL: util.GetEnvVar(
+				"RELATED_IMAGE_CONSOLE_PF5_IMAGE_URL_DEFAULT", ConsoleContainerImagePF5),
+			OKPImageURL: util.GetEnvVar(
+				"RELATED_IMAGE_OKP_IMAGE_URL_DEFAULT", OKPContainerImage),
+			MCPServerImageURL: util.GetEnvVar(
+				"RELATED_IMAGE_MCP_SERVER_IMAGE_URL_DEFAULT", MCPServerContainerImage),
+		},
 		MaxTokensForResponse: MaxTokensForResponseDefault,
 	}
+	OpenStackLightspeedDefaultValues = envVarDefaults
+}
 
-	OpenStackLightspeedDefaultValues = openStackLightspeedDefaults
+// MergeDefaults returns a copy of the env-var defaults with the spec image
+// overrides (if any) applied on top.
+func MergeDefaults(specImages *OpenStackLightspeedImages) OpenStackLightspeedDefaults {
+	merged := envVarDefaults
+	if specImages != nil {
+		mergeImages(&merged.OpenStackLightspeedImages, specImages)
+	}
+	return merged
 }

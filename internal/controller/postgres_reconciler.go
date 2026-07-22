@@ -99,7 +99,6 @@ func reconcilePostgresBootstrapSecret(h *common_helper.Helper, ctx context.Conte
 			PostgresBootstrapScript:    PostgresBootStrapScriptContent,
 			PostgresBootstrapSQLScript: PostgresBootStrapSQLContent,
 		}
-		// Set owner reference
 		return controllerutil.SetControllerReference(h.GetBeforeObject(), secret, h.GetScheme())
 	})
 

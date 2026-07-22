@@ -1,0 +1,17 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 180
+# Script: kuttl errors files check entire resource absence, not specific field absence
+commands:
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+      if oc get secret ac-lightspeed-test-secret -n openstack 2>/dev/null; then
+        FINALIZERS=$(oc get secret ac-lightspeed-test-secret -n openstack \
+          -o jsonpath='{.metadata.finalizers}' 2>/dev/null || true)
+        if echo "$FINALIZERS" | grep -q "openstack.org/lightspeed-ac-consumer"; then
+          echo "ERROR: AC secret still has lightspeed-ac-consumer finalizer"
+          exit 1
+        fi
+      fi

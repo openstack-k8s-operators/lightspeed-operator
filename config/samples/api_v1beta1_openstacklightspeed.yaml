@@ -20,11 +20,21 @@ spec:
   #   ogxLogLevel: "all=info"
   #   lightspeedStackLogLevel: "INFO"
   #   dataverseExporterLogLevel: "INFO"
-  # Uncomment to enable OKP (Offline Knowledge Portal) as an Inline RAG source:
-  # okp:
-  #   accessKey: okp-access-key-secret
+  # Uncomment to enable RHOS MCPs (MCP server sidecar with OpenStack/OpenShift tools)
   # dev:
   #   featureFlags:
-  #     - okp
+  #     - rhos_mcps
   #   okpChunkFilterQuery: "product:(*openstack* OR *openshift*)"
   #   okpRagOnly: true
+  # okp:
+  #   accessKey: okp-access-key-secret
+  # Uncomment to customize container images:
+  # images:
+  #   ragImage: "quay.io/openstack-lightspeed/rag-content:custom"
+  #   lcoreImage: "quay.io/lightspeed-core/lightspeed-stack:custom"
+  #   exporterImage: "quay.io/lightspeed-core/lightspeed-to-dataverse-exporter:custom"
+  #   postgresImage: "registry.redhat.io/rhel9/postgresql-16:custom"
+  #   consoleImage: "registry.redhat.io/openshift-lightspeed/lightspeed-console-plugin-rhel9:custom"
+  #   consoleImagePF5: "registry.redhat.io/openshift-lightspeed/lightspeed-console-plugin-pf5-rhel9:custom"
+  #   okpImage: "registry.redhat.io/offline-knowledge-portal/rhokp-rhel9:custom"
+  #   mcpServerImage: "quay.io/openstack-lightspeed/rhos-mcps:custom"
