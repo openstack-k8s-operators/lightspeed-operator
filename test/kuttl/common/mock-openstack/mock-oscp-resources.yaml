@@ -1,0 +1,86 @@
+##############################################################################
+#  Mock OpenStackControlPlane and openstackclient resources for AC tests   #
+##############################################################################
+
+# openstackclient clouds.yaml ConfigMap
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openstack-config-mock
+  namespace: openstack
+data:
+  clouds.yaml: |
+    clouds:
+      default:
+        auth:
+          auth_url: http://mock-keystone-server.openstack.svc:5000/v3
+          username: admin
+        region_name: regionOne
+
+# openstackclient secure.yaml Secret
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: openstack-config-secret-mock
+  namespace: openstack
+stringData:
+  secure.yaml: |
+    clouds:
+      default:
+        auth:
+          password: admin-password
+
+# CA bundle Secret (dummy cert, keystone uses HTTP)
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: combined-ca-bundle-mock
+  namespace: openstack
+stringData:
+  tls-ca-bundle.pem: |
+    -----BEGIN CERTIFICATE-----
+    MIIEMDCCAxigAwIBAgIJANqb7HHzA7AZMA0GCSqGSIb3DQEBCwUAMIGkMQswCQYD
+    VQQGEwJQQTEPMA0GA1UECAwGUGFuYW1hMRQwEgYDVQQHDAtQYW5hbWEgQ2l0eTEk
+    MCIGA1UECgwbVHJ1c3RDb3IgU3lzdGVtcyBTLiBkZSBSLkwuMScwJQYDVQQLDB5U
+    cnVzdENvciBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkxHzAdBgNVBAMMFlRydXN0Q29y
+    IFJvb3RDZXJ0IENBLTEwHhcNMTYwMjA0MTIzMjE2WhcNMjkxMjMxMTcyMzE2WjCB
+    pDELMAkGA1UEBhMCUEExDzANBgNVBAgMBlBhbmFtYTEUMBIGA1UEBwwLUGFuYW1h
+    IENpdHkxJDAiBgNVBAoMG1RydXN0Q29yIFN5c3RlbXMgUy4gZGUgUi5MLjEnMCUG
+    A1UECwweVHJ1c3RDb3IgQ2VydGlmaWNhdGUgQXV0aG9yaXR5MR8wHQYDVQQDDBZU
+    cnVzdENvciBSb290Q2VydCBDQS0xMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB
+    CgKCAQEAv463leLCJhJrMxnHQFgKq1mqjQCj/IDHUHuO1CAmujIS2CNUSSUQIpid
+    RtLByZ5OGy4sDjjzGiVoHKZaBeYei0i/mJZ0PmnK6bV4pQa81QBeCQryJ3pS/C3V
+    seq0iWEk8xoT26nPUu0MJLq5nux+AHT6k61sKZKuUbS701e/s/OojZz0JEsq1pme
+    9J7+wH5COucLlVPat2gOkEz7cD+PSiyU8ybdY2mplNgQTsVHCJCZGxdNuWxu72CV
+    EY4hgLW9oHPY0LJ3xEXqWib7ZnZ2+AYfYW0PVcWDtxBWcgYHpfOxGgMFZA6dWorW
+    hnAbJN7+KIor0Gqw/Hqi3LJ5DotlDwIDAQABo2MwYTAdBgNVHQ4EFgQU7mtJPHo/
+    DeOxCbeKyKsZn3MzUOcwHwYDVR0jBBgwFoAU7mtJPHo/DeOxCbeKyKsZn3MzUOcw
+    DwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAYYwDQYJKoZIhvcNAQELBQAD
+    ggEBACUY1JGPE+6PHh0RU9otRCkZoB5rMZ5NDp6tPVxBb5UrJKF5mDo4Nvu7Zp5I
+    /5CQ7z3UuJu0h3U/IJvOcs+hVcFNZKIZBqEHMwwLKeXx6quj7LUKdJDHfXLy11yf
+    ke+Ri7fc7Waiz45mO7yfOgLgJ90WmMCV1Aqk5IGadZQ1nJBfiDcGrVmVCrDRZ9MZ
+    yonnMlo2HD6CqFqTvsbQZJG2z9m2GM/bftJlo6bEjhcxwft+dtvTheNYsnd6djts
+    L1Ac59v2Z3kf9YKVmgenFK+P3CghZwnS1k1aHBkcjndcw5QkPTJrS37UeJSDvjdN
+    zl/HHk484IkzlQsPpTLWPFp5LBk=
+    -----END CERTIFICATE-----
+
+# OpenStackControlPlane instance
+---
+apiVersion: core.openstack.org/v1beta1
+kind: OpenStackControlPlane
+metadata:
+  name: openstack-galera-network-isolation
+  namespace: openstack
+spec:
+  openstackclient:
+    template:
+      openStackConfigMap: openstack-config-mock
+      openStackConfigSecret: openstack-config-secret-mock
+status:
+  tls:
+    caBundleSecretName: combined-ca-bundle-mock

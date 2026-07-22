@@ -301,6 +301,9 @@ status:
       status: "True"
       reason: Ready
       message: Setup complete
+    - type: OpenStackLightspeedMCPServerReady
+      status: "True"
+      message: "RHOS MCP server is disabled (rhos_mcps feature flag not set)"
     - type: OpenStackLightspeedReady
       status: "True"
       reason: Ready

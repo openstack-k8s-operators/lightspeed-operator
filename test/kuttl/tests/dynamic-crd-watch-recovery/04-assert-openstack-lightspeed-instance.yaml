@@ -1,0 +1,25 @@
+---
+apiVersion: lightspeed.openstack.org/v1beta1
+kind: OpenStackLightspeed
+metadata:
+  name: openstack-lightspeed
+  namespace: openstack-lightspeed
+status:
+  openStackReady: true
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 360
+# Script: kuttl YAML asserts match resource structure, not string content within data fields
+commands:
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+      MCP_DATA=$(oc get configmap mcp-config -n openstack-lightspeed \
+        -o jsonpath='{.data.config\.yaml}')
+      ENABLED=$(echo "$MCP_DATA" | grep -A1 "openstack:" | grep "enabled:" | tr -d ' ')
+      if [ "$ENABLED" != "enabled:true" ]; then
+        echo "ERROR: MCP config does not have openstack enabled"
+        echo "$MCP_DATA"
+        exit 1
+      fi

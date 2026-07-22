@@ -1,0 +1,22 @@
+##############################################################################
+#   These resources must NOT exist during the intermediate state.            #
+#   They should only be created after all readiness checks pass.             #
+##############################################################################
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: combined-ca-bundle
+  namespace: openstack-lightspeed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openstack-config
+  namespace: openstack-lightspeed
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openstack-config-secret
+  namespace: openstack-lightspeed

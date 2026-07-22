@@ -1,0 +1,55 @@
+##############################################################################
+#   Assert that the operator created all expected RHOS MCP resources         #
+##############################################################################
+
+# Main deployment with RHOS MCP sidecar
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lightspeed-stack-deployment
+  namespace: openstack-lightspeed
+spec:
+  template:
+    spec:
+      containers:
+        - name: llama-stack
+        - name: lightspeed-service-api
+        - name: lightspeed-to-dataverse-exporter
+        - name: rhos-mcp
+          volumeMounts:
+            - name: mcp-config
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+status:
+  replicas: 1
+  readyReplicas: 1
+  availableReplicas: 1
+
+# MCP server ConfigMap
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mcp-config
+  namespace: openstack-lightspeed
+
+# OpenStackLightspeed CR status
+---
+apiVersion: lightspeed.openstack.org/v1beta1
+kind: OpenStackLightspeed
+metadata:
+  name: openstack-lightspeed
+  namespace: openstack-lightspeed
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+      reason: Ready
+      message: Setup complete
+    - type: OpenStackLightspeedMCPServerReady
+      status: "True"
+    - type: OpenStackLightspeedReady
+      status: "True"
+      reason: Ready
+      message: OpenStack Lightspeed created

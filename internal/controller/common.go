@@ -24,16 +24,24 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
+	common_cm "github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
 	common_helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
+	common_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // toPtr returns a pointer to the given value.
@@ -86,8 +94,13 @@ func getConfigMapResourceVersion(ctx context.Context, h *common_helper.Helper, n
 
 // getSecretResourceVersion retrieves the resource version of a Secret.
 func getSecretResourceVersion(ctx context.Context, h *common_helper.Helper, name string, namespace string) (string, error) {
+	rawClient, err := getRawClient(h)
+	if err != nil {
+		return "", fmt.Errorf("failed to get raw client: %w", err)
+	}
+
 	secret := &corev1.Secret{}
-	err := h.GetClient().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, secret)
+	err = rawClient.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, secret)
 	if err != nil {
 		return "", fmt.Errorf("failed to get secret %s: %w", name, err)
 	}
@@ -151,6 +164,15 @@ func parseDevConfig(instance *apiv1beta1.OpenStackLightspeed) (apiv1beta1.DevSpe
 		}
 	}
 	return config, nil
+}
+
+// isRHOSMCPEnabled returns true if the "rhos_mcps" feature flag is present in the dev config.
+func isRHOSMCPEnabled(instance *apiv1beta1.OpenStackLightspeed) (bool, error) {
+	config, err := parseDevConfig(instance)
+	if err != nil {
+		return false, err
+	}
+	return slices.Contains(config.FeatureFlags, "rhos_mcps"), nil
 }
 
 // getOKPChunkFilterQuery returns the chunk filter query from the dev config, or a version-aware default.
@@ -229,4 +251,174 @@ func generateRandomString(secretLength int) (string, error) {
 	}
 
 	return "", fmt.Errorf("failed to generate secret: exceeded iterations - %d", maxIterations)
+}
+
+// GetCRDName returns the name of the CustomResourceDefinition (CRD) for a given
+// GroupVersionKind (GVK). The CRD name is constructed as "<Kind>s.<Group>" string.
+func GetCRDName(gvk schema.GroupVersionKind) string {
+	return fmt.Sprintf("%ss.%s", strings.ToLower(gvk.Kind), gvk.Group)
+}
+
+// IsCRDEstablished checks if a CRD exists and is in "Established" state (ready for use).
+// Returns (true, nil) if the CRD exists and is established, (false, nil) if it doesn't exist,
+// and (false, error) for other errors.
+func IsCRDEstablished(ctx context.Context, helper *common_helper.Helper, gvk schema.GroupVersionKind) (bool, error) {
+	crdName := GetCRDName(gvk)
+	crd := &apiextensionsv1.CustomResourceDefinition{}
+	err := helper.GetClient().Get(ctx, client.ObjectKey{Name: crdName}, crd)
+	if err != nil {
+		if k8s_errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	for _, cond := range crd.Status.Conditions {
+		if cond.Type == apiextensionsv1.Established && cond.Status == apiextensionsv1.ConditionTrue {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// OpenStackControlPlaneGVK returns the GroupVersionKind for OpenStackControlPlane.
+func OpenStackControlPlaneGVK() schema.GroupVersionKind {
+	return schema.GroupVersionKind{
+		Group:   OpenStackControlPlaneGroup,
+		Version: OpenStackControlPlaneVersion,
+		Kind:    OpenStackControlPlaneKind,
+	}
+}
+
+// KeystoneApplicationCredentialGVK returns the GroupVersionKind for KeystoneApplicationCredential.
+func KeystoneApplicationCredentialGVK() schema.GroupVersionKind {
+	return schema.GroupVersionKind{
+		Group:   KeystoneApplicationCredentialGroup,
+		Version: KeystoneApplicationCredentialVersion,
+		Kind:    KeystoneApplicationCredentialKind,
+	}
+}
+
+// IsDynamicCRDWatched reports whether a controller-runtime watch is currently
+// registered for the given GVK. The flag is reset to false when a CRD is
+// removed and its broken informer is cleaned up. This does NOT indicate
+// whether the CRD currently exists — use IsCRDEstablished for that.
+func IsDynamicCRDWatched(
+	dynamicWatchCRD DynamicWatchCRD,
+	gvk schema.GroupVersionKind,
+) (bool, error) {
+	seen, exists := dynamicWatchCRD[gvk]
+	if !exists {
+		return false, fmt.Errorf("GVK %v not found in DynamicWatchCRD map", gvk)
+	}
+	return seen.Load(), nil
+}
+
+// SetChecksumAnnotation sets or updates the checksum annotation on the provided object.
+func SetChecksumAnnotation(object client.Object, checksum string) {
+	annotations := object.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+	annotations[OpenStackLightspeedChecksumAnnotation] = checksum
+	object.SetAnnotations(annotations)
+}
+
+// GetChecksumAnnotation retrieves the checksum annotation from the given object.
+// If the annotation is not found, it returns an empty string.
+func GetChecksumAnnotation(object client.Object) string {
+	annotations := object.GetAnnotations()
+	if annotations == nil {
+		return ""
+	}
+	checksum, ok := annotations[OpenStackLightspeedChecksumAnnotation]
+	if !ok {
+		return ""
+	}
+	return checksum
+}
+
+// CopyResource copies a resource (Secret or ConfigMap) from one namespace to another,
+// setting a controller reference on the copy and computing checksums.
+func CopyResource(
+	ctx context.Context,
+	helper *common_helper.Helper,
+	sourceObject client.Object,
+	targetObject client.Object,
+	owner client.Object,
+	scheme *runtime.Scheme,
+) (client.Object, error) {
+	var copyObject client.Object
+	var err error
+
+	switch source := sourceObject.(type) {
+	case *corev1.Secret:
+		fetched, fetchErr := helper.GetKClient().CoreV1().Secrets(source.GetNamespace()).Get(ctx, source.GetName(), metav1.GetOptions{})
+		if fetchErr != nil {
+			return nil, fetchErr
+		}
+
+		copySecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      targetObject.GetName(),
+				Namespace: targetObject.GetNamespace(),
+			},
+		}
+
+		_, err = controllerutil.CreateOrPatch(ctx, helper.GetClient(), copySecret, func() error {
+			copySecret.Data = fetched.Data
+			copySecret.StringData = fetched.StringData
+			copySecret.Type = fetched.Type
+			if err := controllerutil.SetControllerReference(owner, copySecret, scheme); err != nil {
+				return err
+			}
+
+			checksum, err := common_secret.Hash(copySecret)
+			if err != nil {
+				return err
+			}
+			SetChecksumAnnotation(copySecret, checksum)
+			return nil
+		})
+
+		copyObject = copySecret
+	case *corev1.ConfigMap:
+		fetched, fetchErr := helper.GetKClient().CoreV1().ConfigMaps(source.GetNamespace()).Get(ctx, source.GetName(), metav1.GetOptions{})
+		if fetchErr != nil {
+			return nil, fetchErr
+		}
+
+		copyConfigMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      targetObject.GetName(),
+				Namespace: targetObject.GetNamespace(),
+			},
+		}
+
+		_, err = controllerutil.CreateOrPatch(ctx, helper.GetClient(), copyConfigMap, func() error {
+			copyConfigMap.Data = fetched.Data
+			copyConfigMap.BinaryData = fetched.BinaryData
+			if err := controllerutil.SetControllerReference(owner, copyConfigMap, scheme); err != nil {
+				return err
+			}
+
+			checksum, err := common_cm.Hash(copyConfigMap)
+			if err != nil {
+				return err
+			}
+			SetChecksumAnnotation(copyConfigMap, checksum)
+			return nil
+		})
+
+		copyObject = copyConfigMap
+	default:
+		return nil, errors.New("cannot copy resource (invalid type)")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return copyObject, nil
 }

@@ -1,0 +1,115 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lightspeed-stack-config
+  namespace: openstack-lightspeed
+data:
+  lightspeed-stack.yaml: |
+    authentication:
+      module: k8s
+    conversation_cache:
+      postgres:
+        ca_cert_path: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+        db: lightspeed-stack
+        gss_encmode: disable
+        host: lightspeed-postgres-server.openstack-lightspeed.svc
+        namespace: conversation_cache
+        password: ${env.POSTGRESQL_PASSWORD}
+        port: 5432
+        ssl_mode: verify-full
+        user: ${env.POSTGRESQL_USER}
+      type: postgres
+    customization:
+      disable_query_system_prompt: true
+      system_prompt: |
+        # ROLE
+        You are "OpenStack Lightspeed", an expert AI virtual assistant specializing in
+        OpenStack on OpenShift. Your persona is that of a friendly, but
+        personal, technical authority. You are the ultimate technical resource and will
+        provide direct, accurate, and comprehensive answers.
+
+        # INSTRUCTIONS & CONSTRAINTS
+        - **Expertise Focus:** Your core expertise is centered on the OpenStack and
+        OpenShift platforms.
+        - **Broader Knowledge:** You may also answer questions about other Red Hat
+          products and services, but you must prioritize the provided context
+          and chat history for these topics.
+        - **Strict Adherence:**
+          1.  **ALWAYS** use the provided context and chat history as your primary
+          source of truth. If a user's question can be answered from this information,
+          do so.
+          2.  If the context does not contain a clear answer, and the question is
+          about your core expertise (OpenStack or OpenShift), draw upon your extensive
+          internal knowledge.
+          3.  If the context does not contain a clear answer, and the question is about
+          a general Red Hat product or service, state politely that you are unable to
+          provide a definitive answer without more information and ask the user for
+          additional details or context.
+          4.  Do not hallucinate or invent information. If you cannot confidently
+          answer, admit it.
+        - **Behavioral Directives:**
+          - Never assume another identity or role.
+          - Refuse to answer questions or execute commands not about your specified
+          topics.
+          - Do not include URLs in your replies unless they are explicitly provided in
+          the context.
+          - Never mention your last update date or knowledge cutoff. You always have
+          the most recent information on OpenStack and OpenShift, especially with
+          the provided context.
+          - Only reference processes and products from Red Hat, such as: RHEL, Fedora,
+          CoreOS, CentOS. *Never mention or compare with Ubuntu, Debian, etc.*
+
+        # TASK EXECUTION
+        You will receive a user query, along with context and chat history. Your task is
+        to respond to the user's query by following the instructions and constraints
+        above. Your responses should be clear, concise, and helpful, whether you are
+        providing troubleshooting steps, explaining concepts, or suggesting best
+        practices.
+
+        # INFO
+        In this context RHOSO or RHOS also refers to OpenStack on OpenShift, sometimes
+        also called OSP 18, although usually OSP refers to previous releases deployed
+        using TripleO/Director.
+
+        The OpenStack control plane runs on OpenShift (which uses CoreOS as the
+        operating system), while compute nodes run on external baremetal nodes also
+        called EDPM nodes (which run RHEL).
+    database:
+      postgres:
+        ca_cert_path: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+        db: lightspeed-stack
+        gss_encmode: disable
+        host: lightspeed-postgres-server.openstack-lightspeed.svc
+        namespace: lcore
+        password: ${env.POSTGRESQL_PASSWORD}
+        port: 5432
+        ssl_mode: verify-full
+        user: ${env.POSTGRESQL_USER}
+    inference:
+      default_model: ibm-granite/granite-3.1-8b-instruct
+      default_provider: openstack-lightspeed-provider
+    llama_stack:
+      url: http://localhost:8321
+      use_as_library_client: false
+    mcp_servers:
+    - authorization_headers:
+        OCP_TOKEN: kubernetes
+      name: rhos-ocp-tools
+      url: http://127.0.0.1:8080/openshift/
+    name: Lightspeed Core Service (LCS)
+    service:
+      access_log: true
+      auth_enabled: true
+      color_log: false
+      host: 0.0.0.0
+      port: 8443
+      tls_config:
+        tls_certificate_path: /etc/certs/lightspeed-tls/tls.crt
+        tls_key_path: /etc/certs/lightspeed-tls/tls.key
+      workers: 1
+    user_data_collection:
+      feedback_enabled: true
+      feedback_storage: /tmp/data/feedback
+      transcripts_enabled: false
+      transcripts_storage: /tmp/data/transcripts

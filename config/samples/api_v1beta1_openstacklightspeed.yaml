@@ -20,11 +20,11 @@ spec:
   #   ogxLogLevel: "all=info"
   #   lightspeedStackLogLevel: "INFO"
   #   dataverseExporterLogLevel: "INFO"
-  # Uncomment to enable OKP (Offline Knowledge Portal) as an Inline RAG source:
-  # okp:
-  #   accessKey: okp-access-key-secret
+  # Uncomment to enable RHOS MCPs (MCP server sidecar with OpenStack/OpenShift tools)
   # dev:
   #   featureFlags:
-  #     - okp
+  #     - rhos_mcps
   #   okpChunkFilterQuery: "product:(*openstack* OR *openshift*)"
   #   okpRagOnly: true
+  # okp:
+  #   accessKey: okp-access-key-secret
