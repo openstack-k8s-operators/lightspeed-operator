@@ -424,6 +424,13 @@ func reconcileService(h *common_helper.Helper, ctx context.Context, instance *ap
 		}
 		svc.Spec.Type = corev1.ServiceTypeClusterIP
 
+		// Set service labels for the telemetry metric scraping discovery
+		if svc.Labels == nil {
+			svc.Labels = make(map[string]string)
+		}
+		svc.Labels["metrics"] = "enabled"
+		svc.Labels["service"] = OpenStackLightspeedAppServerServiceName
+
 		// Set service-ca annotation for TLS certificate provisioning
 		if svc.Annotations == nil {
 			svc.Annotations = make(map[string]string)
