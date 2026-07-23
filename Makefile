@@ -69,6 +69,8 @@ IMG ?= $(IMAGE_TAG_BASE):latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.30.0
 
+BRANCH ?= main
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -116,6 +118,12 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+.PHONY: force-bump
+force-bump: ## Force bump after tagging
+	for dep in $$(cat go.mod | grep openstack-k8s-operators | grep -vE -- 'indirect|lightspeed-operator|^replace|^//' | awk '{print $$1}'); do \
+		go get $$dep@$(BRANCH) ; \
+	done
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
