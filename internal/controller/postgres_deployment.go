@@ -21,12 +21,11 @@ import (
 
 	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // buildPostgresPodTemplateSpec builds the pod template spec for the Postgres deployment.
-func buildPostgresPodTemplateSpec() corev1.PodTemplateSpec {
+func buildPostgresPodTemplateSpec(instance *apiv1beta1.OpenStackLightspeed) corev1.PodTemplateSpec {
 	// Build volumes and volume mounts
 	volumes := []corev1.Volume{}
 	volumeMounts := []corev1.VolumeMount{}
@@ -180,17 +179,8 @@ func buildPostgresPodTemplateSpec() corev1.PodTemplateSpec {
 					LivenessProbe:  buildPostgresProbe(PostgresLivenessProbePeriodSeconds, PostgresLivenessProbeTimeoutSeconds, PostgresLivenessProbeFailureThreshold, 0),
 					ReadinessProbe: buildPostgresProbe(PostgresReadinessProbePeriodSeconds, PostgresReadinessProbeTimeoutSeconds, PostgresReadinessProbeFailureThreshold, 0),
 					VolumeMounts:   volumeMounts,
-					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("30m"),
-							corev1.ResourceMemory: resource.MustParse("300Mi"),
-						},
-						Limits: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("500m"),
-							corev1.ResourceMemory: resource.MustParse("2Gi"),
-						},
-					},
-					Env: envVars,
+					Resources:      instance.Spec.Resources.Postgres,
+					Env:            envVars,
 				},
 			},
 			Volumes: volumes,

@@ -36,11 +36,11 @@ spec:
         - name: lightspeed-postgres-server
           resources:
             requests:
-              cpu: 30m
-              memory: 300Mi
+              cpu: 40m
+              memory: 400Mi
             limits:
-              cpu: 500m
-              memory: 2Gi
+              cpu: 600m
+              memory: 2500Mi
 status:
   replicas: 1
   readyReplicas: 1
@@ -51,6 +51,26 @@ kind: NetworkPolicy
 metadata:
   name: lightspeed-postgres-server
   namespace: openstack-lightspeed
+
+# OKP Deployment with custom resources
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lightspeed-okp-server
+  namespace: openstack-lightspeed
+spec:
+  template:
+    spec:
+      containers:
+        - name: okp
+          resources:
+            requests:
+              cpu: 600m
+              memory: 2500Mi
+            limits:
+              cpu: 2500m
+              memory: 5Gi
 
 # LCore resources
 ---
@@ -94,11 +114,11 @@ spec:
         - name: llama-stack
           resources:
             requests:
-              cpu: 500m
-              memory: 2Gi
+              cpu: 600m
+              memory: 2500Mi
             limits:
-              cpu: "2"
-              memory: 8Gi
+              cpu: 2500m
+              memory: 9Gi
           env:
             - name: OPENSTACK_LIGHTSPEED_PROVIDER_API_KEY
               valueFrom:
@@ -144,11 +164,11 @@ spec:
         - name: lightspeed-service-api
           resources:
             requests:
-              cpu: 250m
-              memory: 512Mi
+              cpu: 300m
+              memory: 600Mi
             limits:
-              cpu: "1"
-              memory: 2Gi
+              cpu: 1200m
+              memory: 2500Mi
           env:
             - name: LIGHTSPEED_STACK_LOG_LEVEL
               value: ERROR
@@ -254,14 +274,23 @@ spec:
         - name: rewrite-locales
           resources:
             requests:
-              cpu: 50m
-              memory: 64Mi
+              cpu: 60m
+              memory: 80Mi
             limits:
-              cpu: 200m
-              memory: 256Mi
+              cpu: 250m
+              memory: 300Mi
           volumeMounts:
             - name: locales-rewrite
               mountPath: /locales-rewrite
+      containers:
+        - name: lightspeed-console-plugin
+          resources:
+            requests:
+              cpu: 60m
+              memory: 80Mi
+            limits:
+              cpu: 250m
+              memory: 300Mi
 ---
 apiVersion: v1
 kind: Service
@@ -292,6 +321,42 @@ spec:
   llmAPIVersion: v1.1
   feedbackEnabled: false
   transcriptsEnabled: false
+  resources:
+    llamaStack:
+      requests:
+        cpu: 600m
+        memory: 2500Mi
+      limits:
+        cpu: 2500m
+        memory: 9Gi
+    lightspeedService:
+      requests:
+        cpu: 300m
+        memory: 600Mi
+      limits:
+        cpu: 1200m
+        memory: 2500Mi
+    postgres:
+      requests:
+        cpu: 40m
+        memory: 400Mi
+      limits:
+        cpu: 600m
+        memory: 2500Mi
+    okp:
+      requests:
+        cpu: 600m
+        memory: 2500Mi
+      limits:
+        cpu: 2500m
+        memory: 5Gi
+    consolePlugin:
+      requests:
+        cpu: 60m
+        memory: 80Mi
+      limits:
+        cpu: 250m
+        memory: 300Mi
   logging:
     ogxLogLevel: "core=debug,providers=info"
     lightspeedStackLogLevel: ERROR

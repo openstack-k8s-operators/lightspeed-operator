@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -91,6 +92,52 @@ type DatabaseSpec struct {
 	Class string `json:"class,omitempty"`
 }
 
+// ContainerResourcesSpec defines resource requirements for each container
+// managed by the operator. Defaults are applied by the API server via
+// kubebuilder markers. Users may override any container's resources in
+// the CR; the provided value replaces the default entirely.
+type ContainerResourcesSpec struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:={requests: {cpu: "500m", memory: "2Gi"}, limits: {cpu: "2", memory: "8Gi"}}
+	// LlamaStack sets compute resources for the llama-stack (OGX) container
+	// in the lightspeed-stack deployment.
+	LlamaStack corev1.ResourceRequirements `json:"llamaStack,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:={requests: {cpu: "250m", memory: "512Mi"}, limits: {cpu: "1", memory: "2Gi"}}
+	// LightspeedService sets compute resources for the lightspeed-service-api
+	// container in the lightspeed-stack deployment.
+	LightspeedService corev1.ResourceRequirements `json:"lightspeedService,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:={requests: {cpu: "50m", memory: "64Mi"}, limits: {memory: "200Mi"}}
+	// DataverseExporter sets compute resources for the dataverse exporter
+	// sidecar container (only created when data collection is enabled).
+	DataverseExporter corev1.ResourceRequirements `json:"dataverseExporter,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:={requests: {cpu: "100m", memory: "256Mi"}, limits: {cpu: "500m", memory: "1Gi"}}
+	// VectorDatabaseInit sets compute resources for both vector-database
+	// init containers (vector-database-collect and vector-database-config-build).
+	VectorDatabaseInit corev1.ResourceRequirements `json:"vectorDatabaseInit,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:={requests: {cpu: "30m", memory: "300Mi"}, limits: {cpu: "500m", memory: "2Gi"}}
+	// Postgres sets compute resources for the PostgreSQL container.
+	Postgres corev1.ResourceRequirements `json:"postgres,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:={requests: {cpu: "500m", memory: "2Gi"}, limits: {cpu: "2", memory: "4Gi"}}
+	// OKP sets compute resources for the Offline Knowledge Portal container.
+	OKP corev1.ResourceRequirements `json:"okp,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:={requests: {cpu: "50m", memory: "64Mi"}, limits: {cpu: "200m", memory: "256Mi"}}
+	// ConsolePlugin sets compute resources for the lightspeed-console-plugin
+	// container and its init container.
+	ConsolePlugin corev1.ResourceRequirements `json:"consolePlugin,omitempty"`
+}
+
 // OpenStackLightspeedSpec defines the desired state of OpenStackLightspeed
 type OpenStackLightspeedSpec struct {
 	OpenStackLightspeedCore `json:",inline"`
@@ -104,6 +151,14 @@ type OpenStackLightspeedSpec struct {
 	// +kubebuilder:validation:Optional
 	// OKP configures the Offline Knowledge Portal (OKP) RAG source.
 	OKP *OKPSpec `json:"okp,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:={}
+	// Resources configures compute resource requirements for individual
+	// containers managed by the operator. Each field has sensible defaults
+	// applied by the API server. Override any container's resources to
+	// replace its defaults entirely.
+	Resources ContainerResourcesSpec `json:"resources,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:pruning:PreserveUnknownFields

@@ -34,5 +34,41 @@ spec:
     ogxLogLevel: "core=debug,providers=info"
     lightspeedStackLogLevel: ERROR
     dataverseExporterLogLevel: ERROR
+  resources:
+    llamaStack:
+      requests:
+        cpu: "600m"
+        memory: "2500Mi"
+      limits:
+        cpu: "2500m"
+        memory: "9Gi"
+    lightspeedService:
+      requests:
+        cpu: "300m"
+        memory: "600Mi"
+      limits:
+        cpu: "1200m"
+        memory: "2500Mi"
+    postgres:
+      requests:
+        cpu: "40m"
+        memory: "400Mi"
+      limits:
+        cpu: "600m"
+        memory: "2500Mi"
+    okp:
+      requests:
+        cpu: "600m"
+        memory: "2500Mi"
+      limits:
+        cpu: "2500m"
+        memory: "5Gi"
+    consolePlugin:
+      requests:
+        cpu: "60m"
+        memory: "80Mi"
+      limits:
+        cpu: "250m"
+        memory: "300Mi"
   dev:
     okpChunkFilterQuery: "product:(*openstack* OR *openshift*)"

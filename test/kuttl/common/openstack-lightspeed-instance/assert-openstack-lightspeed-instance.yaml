@@ -82,6 +82,13 @@ spec:
     spec:
       containers:
         - name: okp
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
           ports:
             - name: okp
               containerPort: 8080
