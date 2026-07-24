@@ -1,8 +1,5 @@
 ---
 - project:
-    name: openstack-lightspeed/operator
-    default-branch: main
-    github-check:
+    check:
       jobs:
         - noop
-
