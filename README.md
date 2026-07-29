@@ -281,3 +281,50 @@ make kuttl-test-run
   or test failures.  There will be leftovers if a previous kuttl test failed.
   Automatically clean things with `make kuttl-test-cleanup` or
   `make kuttle-test-ocp-cleanup` depending on how you run tests.
+
+### Running custom lightspeed-stack code
+
+When developing OpenStack Lightspeed we may want to run custom lightspeed-stack
+code, or debug it with pdb, or change the configuration file on the fly to test
+new things.  For that purpose we have 3 new scripts in the `hack` directory:
+
+- `hack/debug-intercept.sh`: Overrides the `lightspeed-service-api` container
+   to sleep so you can rsh in and run the service manually.  Scales down the
+   operator first so it doesn't revert the patch.
+
+- `hack/debug-sync.sh`: Copies local src/ into the running
+  lightspeed-service-api container so we can run it.
+
+- `hack/debug-restore.sh`: Undoes the debug-intercept patch and scale the
+  operator back up.
+
+So we would first stop the operator and make the `lightspeed-service-api` do
+nothing running:
+
+```
+hack/debug-intercept.sh
+```
+
+Then sync our lightspeed-stack code:
+```
+hack/debug-sync.sh ../lightspeed-stack/src
+```
+
+Alternatively we can run it from the lightspeed-stack directory:
+```
+hack/debug-sync.sh ../lightspeed-stack/src
+```
+cd ../lightspeed-stack
+../operator/hack/debug-sync.sh
+```
+
+Finally go into the container and run the service:
+```
+oc rsh -n openstack-lightspeed -c lightspeed-service api <POD-NAME>
+PYTHONPATH=/tmp/src lightspeed-stack -c /vector-db-discovered-values/lightspeed-stack.yaml -v
+```
+
+Once we finish debugging we can restore things to their normal state with:
+```
+hack/debug-restore.sh
+```
