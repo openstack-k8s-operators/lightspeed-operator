@@ -165,6 +165,8 @@ If you are running CRC on a different machine you can use `sshuttle` to connect 
 
 ## Development
 
+### Running local operator code
+
 If you are making changes to the operator you can run the operator locally
 (outside the cluster) using the Operator SDK make targets:
 
@@ -183,8 +185,6 @@ Use this for quick development and testing.
 
 *Attention*: In this mode RBACs are ignored, so when changing those please run
 the operator in the OpenShift cluster with an image.
-
-## Development
 
 ### Running Pre-Commit Hooks
 
