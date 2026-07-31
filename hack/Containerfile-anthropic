@@ -1,0 +1,20 @@
+# The lightspeed-stack image does not contain the `anthropic` dependency, so we
+# cannot use Anthropic's models.
+# Building an image with this file and using that image allows us to use
+# Anthropic's models.
+#
+# For example we can build the image with
+#   podman build -f Containerfile-anthropic -t quay.io/geguileo/lightspeed-stack:dev-latest
+#
+# And then use it in our `OpenStackLightspeed` like this:
+#   apiVersion: lightspeed.openstack.org/v1beta1
+#   kind: OpenStackLightspeed
+#   metadata:
+#     name: openstack-lightspeed
+#     namespace: openstack-lightspeed
+#   spec:
+#     images:
+#       lcoreImage: "quay.io/geguileo/lightspeed-stack:dev-latest"
+
+FROM quay.io/lightspeed-core/lightspeed-stack:dev-latest
+RUN pip3.12 install anthropic
