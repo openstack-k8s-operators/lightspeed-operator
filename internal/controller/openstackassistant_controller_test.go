@@ -51,7 +51,13 @@ var _ = Describe("OpenStackAssistant Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: lightspeedv1beta1.OpenStackAssistantSpec{
+						ContainerImage: "quay.io/dprince/goose@sha256:07d7200f62bc2e8082de7a58396f8699b5f33fade1dbecc6a5b4ca03ab2f1d33",
+						Provider:       lightspeedv1beta1.ProviderGoose,
+						LightspeedStack: lightspeedv1beta1.LightspeedStackSpec{
+							ProviderSecret: "lightspeed-provider-config",
+						},
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}

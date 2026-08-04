@@ -4,6 +4,21 @@ metadata:
   labels:
     app.kubernetes.io/name: openstack-lightspeed-operator
     app.kubernetes.io/managed-by: kustomize
-  name: openstackassistant-sample
+  name: assistant
 spec:
-  # TODO(user): Add fields here
+  containerImage: quay.io/dprince/goose:oc-fedora
+  provider: goose
+  lightspeedStack:
+    providerSecret: lightspeed-provider-config
+    caBundleSecretName: lightspeed-ca-bundle
+  goose:
+    recipes: assistant-recipes
+    hints: assistant-hints
+    mcpServers:
+      - name: openstack
+        openstackClientRef: openstackclient
+  env:
+    - name: GOOSE_MODEL
+      value: "gemini/models/gemini-2.5-flash"
+    - name: LIGHTSPEED_API_KEY
+      value: "dummy"

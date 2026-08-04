@@ -24,6 +24,24 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - description: OpenStackAssistant is the Schema for the openstackassistants API.
+      displayName: OpenStack Assistant
+      kind: OpenStackAssistant
+      name: openstackassistants.lightspeed.openstack.org
+      resources:
+      - kind: ServiceAccount
+        name: openstackassistant-goose
+        version: v1
+      - kind: ClusterRole
+        name: openstackassistant-goose-ls-access
+        version: v1
+      - kind: ClusterRoleBinding
+        name: openstackassistant-goose-ls-access-binding
+        version: v1
+      - kind: RoleBinding
+        name: openstackassistant-goose-nonroot-v2
+        version: v1
+      version: v1beta1
     - description: OpenStackLightspeed is the Schema for the openstacklightspeeds
         API
       displayName: Open Stack Lightspeed

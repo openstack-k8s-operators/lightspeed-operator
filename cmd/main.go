@@ -213,9 +213,11 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "OpenStackLightspeed")
 		os.Exit(1)
 	}
+
 	if err := (&controller.OpenStackAssistantReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Kclient: kclient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "OpenStackAssistant")
 		os.Exit(1)
@@ -249,6 +251,9 @@ func getWatchNamespaces() ([]string, error) {
 	ns, found := os.LookupEnv(watchNamespaceEnvVar)
 	if !found {
 		return []string{}, fmt.Errorf("%s must be set", watchNamespaceEnvVar)
+	}
+	if ns == "" {
+		return []string{}, nil
 	}
 
 	return strings.Split(ns, ","), nil

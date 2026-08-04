@@ -76,7 +76,7 @@ spec:
           - name: RELATED_IMAGE_OPENSTACK_LIGHTSPEED_IMAGE_URL_DEFAULT
             value: quay.io/openstack-lightspeed/rag-content:os-docs-2026.1-ogx
           - name: RELATED_IMAGE_LCORE_IMAGE_URL_DEFAULT
-            value: quay.io/lightspeed-core/lightspeed-stack:latest
+            value: quay.io/lightspeed-core/lightspeed-stack@sha256:b8de9b9507bbf2c667c833751987e0385ea30a5c9276c4832f70e3de105c91eb
           - name: RELATED_IMAGE_EXPORTER_IMAGE_URL_DEFAULT
             value: quay.io/lightspeed-core/lightspeed-to-dataverse-exporter:latest
           - name: RELATED_IMAGE_POSTGRES_IMAGE_URL_DEFAULT
@@ -110,11 +110,11 @@ spec:
         # More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
         resources:
           limits:
-            cpu: 500m
-            memory: 128Mi
+            cpu: 1000m
+            memory: 512Mi
           requests:
-            cpu: 10m
-            memory: 64Mi
+            cpu: 20m
+            memory: 128Mi
         volumeMounts:
         - name: cert
           mountPath: /tmp/k8s-metrics-server/serving-certs

@@ -29,7 +29,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -99,7 +98,7 @@ func reconcileSARRole(h *common_helper.Helper, ctx context.Context, instance *ap
 
 	role := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   OpenStackLightspeedAppServerSARRoleName,
+			Name:   OpenStackLightspeedAppServerSARRoleName(instance.Namespace),
 			Labels: generateAppServerSelectorLabels(),
 		},
 	}
@@ -147,7 +146,7 @@ func reconcileSARRoleBinding(h *common_helper.Helper, ctx context.Context, insta
 
 	rb := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   OpenStackLightspeedAppServerSARRoleBindingName,
+			Name:   OpenStackLightspeedAppServerSARRoleBindingName(instance.Namespace),
 			Labels: generateAppServerSelectorLabels(),
 		},
 	}
@@ -164,7 +163,7 @@ func reconcileSARRoleBinding(h *common_helper.Helper, ctx context.Context, insta
 		rb.RoleRef = rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
 			Kind:     "ClusterRole",
-			Name:     OpenStackLightspeedAppServerSARRoleName,
+			Name:     OpenStackLightspeedAppServerSARRoleName(instance.Namespace),
 		}
 		// Note: ClusterRoleBinding is cluster-scoped, no owner reference needed
 		return nil
@@ -480,42 +479,42 @@ func reconcileTLSSecret(h *common_helper.Helper, ctx context.Context, _ *apiv1be
 	return nil
 }
 
-// reconcileDeleteClusterRoleBindingByLabels deletes ClusterRoleBinding resources by labels.
-func reconcileDeleteClusterRoleBindingByLabels(h *common_helper.Helper, ctx context.Context, _ *apiv1beta1.OpenStackLightspeed) error {
+// reconcileDeleteClusterRoleBindingByLabels deletes this instance's SAR
+// ClusterRoleBinding by its namespace-scoped name. Deletion is scoped to a
+// single name (not a shared label selector) because the SAR ClusterRoleBinding
+// is cluster-scoped: multiple OpenStackLightspeed instances each own their own
+// binding, and deleting one instance must never remove another's RBAC.
+func reconcileDeleteClusterRoleBindingByLabels(h *common_helper.Helper, ctx context.Context, instance *apiv1beta1.OpenStackLightspeed) error {
 	logger := h.GetLogger()
 
-	labelSelector := labels.Set(generateAppServerSelectorLabels()).AsSelector()
-	matchingLabels := client.MatchingLabelsSelector{Selector: labelSelector}
-	deleteOptions := &client.DeleteAllOfOptions{
-		ListOptions: client.ListOptions{
-			LabelSelector: matchingLabels,
+	rb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: OpenStackLightspeedAppServerSARRoleBindingName(instance.Namespace),
 		},
 	}
-
-	if err := h.GetClient().DeleteAllOf(ctx, &rbacv1.ClusterRoleBinding{}, deleteOptions); err != nil {
+	if err := client.IgnoreNotFound(h.GetClient().Delete(ctx, rb)); err != nil {
 		return fmt.Errorf("%w: %v", ErrDeleteSARClusterRoleBinding, err)
 	}
 
-	logger.Info("SAR ClusterRoleBinding deleted successfully")
+	logger.Info("SAR ClusterRoleBinding deleted successfully", "name", rb.Name)
 	return nil
 }
 
-// reconcileDeleteClusterRoleByLabels deletes ClusterRole resources by labels.
-func reconcileDeleteClusterRoleByLabels(h *common_helper.Helper, ctx context.Context, _ *apiv1beta1.OpenStackLightspeed) error {
+// reconcileDeleteClusterRoleByLabels deletes this instance's SAR ClusterRole
+// by its namespace-scoped name. See reconcileDeleteClusterRoleBindingByLabels
+// for why this must not use a shared label selector.
+func reconcileDeleteClusterRoleByLabels(h *common_helper.Helper, ctx context.Context, instance *apiv1beta1.OpenStackLightspeed) error {
 	logger := h.GetLogger()
 
-	labelSelector := labels.Set(generateAppServerSelectorLabels()).AsSelector()
-	matchingLabels := client.MatchingLabelsSelector{Selector: labelSelector}
-	deleteOptions := &client.DeleteAllOfOptions{
-		ListOptions: client.ListOptions{
-			LabelSelector: matchingLabels,
+	role := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: OpenStackLightspeedAppServerSARRoleName(instance.Namespace),
 		},
 	}
-
-	if err := h.GetClient().DeleteAllOf(ctx, &rbacv1.ClusterRole{}, deleteOptions); err != nil {
+	if err := client.IgnoreNotFound(h.GetClient().Delete(ctx, role)); err != nil {
 		return fmt.Errorf("%w: %v", ErrDeleteSARClusterRole, err)
 	}
 
-	logger.Info("SAR ClusterRole deleted successfully")
+	logger.Info("SAR ClusterRole deleted successfully", "name", role.Name)
 	return nil
 }
