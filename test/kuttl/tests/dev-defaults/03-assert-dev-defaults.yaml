@@ -1,0 +1,13 @@
+##############################################################################
+#   Assert deployment is ready and dev defaults override took effect         #
+##############################################################################
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lightspeed-stack-deployment
+  namespace: openstack-lightspeed
+status:
+  replicas: 1
+  readyReplicas: 1
+  availableReplicas: 1

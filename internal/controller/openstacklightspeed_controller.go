@@ -215,6 +215,8 @@ func (r *OpenStackLightspeedReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, nil
 	}
 
+	apiv1beta1.OpenStackLightspeedDefaultValues = apiv1beta1.MergeDefaults(&instance.Spec.Images)
+
 	if instance.Spec.MaxTokensForResponse == 0 {
 		instance.Spec.MaxTokensForResponse = apiv1beta1.OpenStackLightspeedDefaultValues.MaxTokensForResponse
 	}
