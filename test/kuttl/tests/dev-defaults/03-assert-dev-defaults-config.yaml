@@ -1,0 +1,29 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+
+      oc wait --for=condition=Ready pod \
+        -l app.kubernetes.io/name=openstack-lightspeed-app-server \
+        -n openstack-lightspeed \
+        --timeout=120s
+
+      POD_NAME=$(oc get pods \
+        -l app.kubernetes.io/name=openstack-lightspeed-app-server \
+        -n openstack-lightspeed \
+        -o jsonpath='{.items[0].metadata.name}')
+
+      MAX_TOKENS=$(oc exec -i -n openstack-lightspeed "$POD_NAME" \
+        -c llama-stack -- cat /vector-db-discovered-values/ogx_config.yaml | \
+        grep 'max_tokens:' | head -1 | awk '{print $2}')
+
+      if [ "$MAX_TOKENS" != "4096" ]; then
+        echo "ERROR: Expected max_tokens: 4096, got: $MAX_TOKENS"
+        exit 1
+      fi
+
+      echo "max_tokens correctly overridden to 4096 via dev defaults"
+    timeout: 180

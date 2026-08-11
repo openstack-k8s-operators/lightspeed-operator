@@ -321,6 +321,25 @@ kuttl-test-run: kuttl openstack-lightspeed-deploy kuttl-test openstack-lightspee
 ocp-registry-push: ## Push images to the OpenShift internal registry.
 	bash scripts/ocp-registry-push.sh $(CONTAINER_TOOL) $(OCP_REGISTRY_NAMESPACE) $(IMG) $(CATALOG_IMG)
 
+.PHONY: kuttl-test-cleanup
+kuttl-test-cleanup: ## Remove resources created during kuttl tests.
+	oc delete all --all -n openstack --ignore-not-found=true
+	oc delete all --all -n openstack-lightspeed --ignore-not-found=true
+	oc delete secret --all -n openstack-lightspeed --ignore-not-found=true
+	oc delete configmap --all -n openstack-lightspeed --ignore-not-found=true
+	oc delete pvc --all -n openstack-lightspeed --ignore-not-found=true
+	oc get pv -o jsonpath='{range .items[?(@.spec.claimRef.namespace=="openstack-lightspeed")]}{.metadata.name}{"\n"}{end}' | xargs -r oc delete pv --ignore-not-found=true
+	oc delete clusterrole lightspeed-app-server-sar-role --ignore-not-found=true
+	oc delete clusterrolebinding lightspeed-app-server-sar-role-binding --ignore-not-found=true
+	oc delete consoleplugin lightspeed-console-plugin --ignore-not-found=true
+	oc patch secret ac-lightspeed-test-secret -n openstack --type merge -p '{"metadata":{"finalizers":null}}' || true
+	oc delete namespace openstack --ignore-not-found=true --timeout=60s
+	oc delete crd openstackcontrolplanes.core.openstack.org keystoneapplicationcredentials.keystone.openstack.org --ignore-not-found=true
+
+.PHONY: ocp-registry-cleanup
+ocp-registry-cleanup: ## Remove images from the OpenShift internal registry.
+	bash scripts/ocp-registry-clean.sh $(IMG) $(BUNDLE_IMG) $(CATALOG_IMG)
+
 .PHONY: ocp-catalog-build
 ocp-catalog-build: opm ## Build a catalog image for the OpenShift internal registry.
 	bash scripts/ocp-catalog-build.sh $(CONTAINER_TOOL) $(BUNDLE_IMG) $(CATALOG_IMG) $(OPM)
@@ -329,7 +348,13 @@ ocp-catalog-build: opm ## Build a catalog image for the OpenShift internal regis
 kuttl-test-ocp: IMG = $(OCP_INTERNAL_REGISTRY)/$(OCP_REGISTRY_NAMESPACE)/operator:latest
 kuttl-test-ocp: BUNDLE_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-bundle:$(TAG)
 kuttl-test-ocp: CATALOG_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-catalog:$(TAG)
-kuttl-test-ocp: docker-build bundle bundle-build ocp-catalog-build ocp-registry-push kuttl-test-run
+kuttl-test-ocp: docker-build bundle bundle-build ocp-catalog-build ocp-registry-push kuttl-test-run ocp-registry-cleanup uninstall
+
+.PHONY: kuttl-test-ocp-cleanup
+kuttl-test-ocp-cleanup: IMG = $(OCP_INTERNAL_REGISTRY)/$(OCP_REGISTRY_NAMESPACE)/operator:latest
+kuttl-test-ocp-cleanup: BUNDLE_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-bundle:$(TAG)
+kuttl-test-ocp-cleanup: CATALOG_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-catalog:$(TAG)
+kuttl-test-ocp-cleanup: openstack-lightspeed-undeploy kuttl-test-cleanup ocp-registry-cleanup uninstall
 
 .PHONY: ocp-deploy
 ocp-deploy: IMG = $(OCP_INTERNAL_REGISTRY)/$(OCP_REGISTRY_NAMESPACE)/operator:latest
