@@ -1,17 +1,15 @@
 module github.com/openstack-k8s-operators/lightspeed-operator
 
-go 1.25.0
-
-toolchain go1.25.12
+go 1.26.3
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/onsi/ginkgo/v2 v2.32.0
-	github.com/onsi/gomega v1.40.0
+	github.com/onsi/gomega v1.42.1
 	github.com/openshift/api v3.9.0+incompatible // from lib-common
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.0
-	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.0
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260810100427-d0249ca0cf26
+	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.1-0.20260810100427-d0249ca0cf26
 	github.com/operator-framework/api v0.33.0
 	k8s.io/api v0.33.13
 	k8s.io/apiextensions-apiserver v0.33.13
@@ -51,7 +49,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20260402051712-545e8a4df936 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gophercloud/gophercloud v1.14.1 // indirect
+	github.com/gophercloud/gophercloud/v2 v2.13.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.7 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -80,7 +78,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.0 // indirect
+	go.uber.org/zap v1.28.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
@@ -105,7 +103,7 @@ require (
 	k8s.io/component-base v0.33.13 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250610211856-8b98d1ed966a // indirect
-	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397 // indirect
+	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.33.0 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
