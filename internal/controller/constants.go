@@ -163,6 +163,7 @@ const (
 	RHELAIVLLMProviderName  = "rhelai_vllm"
 	RHOAIVLLMProviderName   = "rhoai_vllm"
 	GeminiProviderName      = "gemini"
+	AnthropicProviderName   = "anthropic"
 	AzureOpenAIProviderName = "azure_openai"
 	OpenAIProviderName      = "openai"
 	WatsonXProviderName     = "watsonx"
@@ -187,6 +188,9 @@ const (
 
 	// EnvVarSuffixAPIKey is the environment variable suffix for API key credentials
 	EnvVarSuffixAPIKey = "_API_KEY"
+
+	// APIKeyConfigField is the Llama Stack provider config field name for API key credentials
+	APIKeyConfigField = "api_key"
 
 	// VectorDBVolumeName is the name of the volume used by init containers to
 	// store discovered values from vector DB images.

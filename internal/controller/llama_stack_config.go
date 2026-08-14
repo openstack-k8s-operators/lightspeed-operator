@@ -123,7 +123,7 @@ func buildLlamaStackInferenceProviders(_ *common_helper.Helper, _ context.Contex
 
 		// Map provider types to Llama Stack provider types
 		switch provider.Type {
-		case OpenAIProviderName, GeminiProviderName, RHOAIVLLMProviderName, RHELAIVLLMProviderName:
+		case OpenAIProviderName, GeminiProviderName, AnthropicProviderName, RHOAIVLLMProviderName, RHELAIVLLMProviderName:
 			config := map[string]interface{}{}
 			// Determine the appropriate Llama Stack provider type:
 			//  - OpenAI uses remote::openai
@@ -132,10 +132,13 @@ func buildLlamaStackInferenceProviders(_ *common_helper.Helper, _ context.Contex
 			switch provider.Type {
 			case OpenAIProviderName:
 				providerConfig["provider_type"] = "remote::openai"
-				apiKeyField = "api_key"
+				apiKeyField = APIKeyConfigField
 			case GeminiProviderName:
 				providerConfig["provider_type"] = "remote::gemini"
-				apiKeyField = "api_key"
+				apiKeyField = APIKeyConfigField
+			case AnthropicProviderName:
+				providerConfig["provider_type"] = "remote::anthropic"
+				apiKeyField = APIKeyConfigField
 			default:
 				providerConfig["provider_type"] = "remote::vllm"
 				apiKeyField = "api_token"
@@ -143,7 +146,12 @@ func buildLlamaStackInferenceProviders(_ *common_helper.Helper, _ context.Contex
 			// Llama Stack will substitute ${env.VAR_NAME} with the actual env var value
 			config[apiKeyField] = fmt.Sprintf("${env.%s%s}", envVarName, EnvVarSuffixAPIKey)
 
-			// Add custom URL if specified
+			// Add custom URL if specified. Note: remote::gemini and remote::anthropic
+			// have fixed, well-known API endpoints and their Llama Stack config schemas
+			// don't define a base_url field at all, so setting llmEndpoint for those
+			// providers has no effect on the generated config - Llama Stack silently
+			// ignores it on its end. That's upstream (llama-stack/OGX) behavior, not
+			// something this operator works around.
 			if provider.URL != "" {
 				config["base_url"] = provider.URL
 			}
@@ -156,7 +164,7 @@ func buildLlamaStackInferenceProviders(_ *common_helper.Helper, _ context.Contex
 
 			// Azure supports both API key and client credentials authentication
 			// Always include api_key (required by LiteLLM's Pydantic validation)
-			config["api_key"] = fmt.Sprintf("${env.%s_API_KEY}", envVarName)
+			config[APIKeyConfigField] = fmt.Sprintf("${env.%s_API_KEY}", envVarName)
 
 			// Also include client credentials fields (will be empty if not using client credentials)
 			config["client_id"] = fmt.Sprintf("${env.%s_CLIENT_ID:=}", envVarName)
@@ -180,7 +188,7 @@ func buildLlamaStackInferenceProviders(_ *common_helper.Helper, _ context.Contex
 
 			config := map[string]interface{}{}
 			config["base_url"] = provider.URL
-			config["api_key"] = fmt.Sprintf("${env.%s_API_KEY}", envVarName)
+			config[APIKeyConfigField] = fmt.Sprintf("${env.%s_API_KEY}", envVarName)
 
 			if provider.WatsonProjectID != "" {
 				config["project_id"] = provider.WatsonProjectID
@@ -190,7 +198,7 @@ func buildLlamaStackInferenceProviders(_ *common_helper.Helper, _ context.Contex
 
 		default:
 			supportedProviders := []string{
-				OpenAIProviderName, GeminiProviderName, RHOAIVLLMProviderName, RHELAIVLLMProviderName,
+				OpenAIProviderName, GeminiProviderName, AnthropicProviderName, RHOAIVLLMProviderName, RHELAIVLLMProviderName,
 				AzureOpenAIProviderName, WatsonXProviderName,
 			}
 			return nil, fmt.Errorf(

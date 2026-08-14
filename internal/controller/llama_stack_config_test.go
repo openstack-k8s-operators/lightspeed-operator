@@ -35,6 +35,10 @@ func getOpenStackLightspeedProvidersInstance(provider string) *apiv1beta1.OpenSt
 		instance.Spec.LLMEndpointType = GeminiProviderName
 		instance.Spec.ModelName = "gemini-2.0-flash"
 		return instance
+	case AnthropicProviderName:
+		instance.Spec.LLMEndpointType = AnthropicProviderName
+		instance.Spec.ModelName = "claude-sonnet-4-5"
+		return instance
 	case RHOAIVLLMProviderName:
 		instance.Spec.LLMEndpointType = RHOAIVLLMProviderName
 		instance.Spec.LLMEndpoint = "https://vllm.example.com/v1"
@@ -100,6 +104,11 @@ var _ = Describe("Llama Stack config", func() {
 					Expect(config["api_key"]).To(Equal("${env.OPENSTACK_LIGHTSPEED_PROVIDER_API_KEY}"))
 					Expect(config).NotTo(HaveKey("base_url"))
 				}),
+			Entry("for anthropic", AnthropicProviderName, "remote::anthropic",
+				func(config map[string]interface{}, _ *apiv1beta1.OpenStackLightspeed) {
+					Expect(config["api_key"]).To(Equal("${env.OPENSTACK_LIGHTSPEED_PROVIDER_API_KEY}"))
+					Expect(config).NotTo(HaveKey("base_url"))
+				}),
 			Entry("for rhoai_vllm", RHOAIVLLMProviderName, "remote::vllm",
 				func(config map[string]interface{}, instance *apiv1beta1.OpenStackLightspeed) {
 					Expect(config["api_token"]).To(Equal("${env.OPENSTACK_LIGHTSPEED_PROVIDER_API_KEY}"))
@@ -147,6 +156,7 @@ var _ = Describe("Llama Stack config", func() {
 			},
 			Entry("for openai", OpenAIProviderName),
 			Entry("for gemini", GeminiProviderName),
+			Entry("for anthropic", AnthropicProviderName),
 			Entry("for rhoai_vllm", RHOAIVLLMProviderName),
 			Entry("for rhelai_vllm", RHELAIVLLMProviderName),
 			Entry("for azure_openai", AzureOpenAIProviderName),

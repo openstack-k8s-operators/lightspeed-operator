@@ -105,6 +105,7 @@ spec:
                 - rhoai_vllm
                 - rhelai_vllm
                 - gemini
+                - anthropic
                 type: string
               llmProjectID:
                 description: Project ID for LLM providers that require it (e.g., WatsonX)
@@ -206,7 +207,7 @@ spec:
                           Claims lists the names of resources, defined in spec.resourceClaims,
                           that are used by this container.
 
-                          This field depends on the
+                          This is an alpha field and requires enabling the
                           DynamicResourceAllocation feature gate.
 
                           This field is immutable. It can only be set for containers.
@@ -274,7 +275,7 @@ spec:
                           Claims lists the names of resources, defined in spec.resourceClaims,
                           that are used by this container.
 
-                          This field depends on the
+                          This is an alpha field and requires enabling the
                           DynamicResourceAllocation feature gate.
 
                           This field is immutable. It can only be set for containers.
@@ -342,7 +343,7 @@ spec:
                           Claims lists the names of resources, defined in spec.resourceClaims,
                           that are used by this container.
 
-                          This field depends on the
+                          This is an alpha field and requires enabling the
                           DynamicResourceAllocation feature gate.
 
                           This field is immutable. It can only be set for containers.
@@ -409,7 +410,7 @@ spec:
                           Claims lists the names of resources, defined in spec.resourceClaims,
                           that are used by this container.
 
-                          This field depends on the
+                          This is an alpha field and requires enabling the
                           DynamicResourceAllocation feature gate.
 
                           This field is immutable. It can only be set for containers.
@@ -476,7 +477,7 @@ spec:
                           Claims lists the names of resources, defined in spec.resourceClaims,
                           that are used by this container.
 
-                          This field depends on the
+                          This is an alpha field and requires enabling the
                           DynamicResourceAllocation feature gate.
 
                           This field is immutable. It can only be set for containers.
@@ -543,7 +544,7 @@ spec:
                           Claims lists the names of resources, defined in spec.resourceClaims,
                           that are used by this container.
 
-                          This field depends on the
+                          This is an alpha field and requires enabling the
                           DynamicResourceAllocation feature gate.
 
                           This field is immutable. It can only be set for containers.
