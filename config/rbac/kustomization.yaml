@@ -26,3 +26,10 @@ resources:
 - openstacklightspeed_editor_role.yaml
 - openstacklightspeed_viewer_role.yaml
 
+# For each CRD, "Admin", "Editor" and "Viewer" roles are scaffolded by
+# default, aiding admins in cluster management. Those roles are
+# not used by the openstack-lightspeed-operator itself. You can comment the following lines
+# if you do not want those helpers be installed with your Project.
+- openstackassistant_admin_role.yaml
+- openstackassistant_editor_role.yaml
+- openstackassistant_viewer_role.yaml

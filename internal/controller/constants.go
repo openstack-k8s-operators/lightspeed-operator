@@ -18,6 +18,7 @@ package controller
 
 import (
 	_ "embed"
+	"fmt"
 	"time"
 )
 
@@ -27,8 +28,6 @@ const (
 
 	// Application Server
 	OpenStackLightspeedAppServerServiceAccountName = "lightspeed-app-server"
-	OpenStackLightspeedAppServerSARRoleName        = OpenStackLightspeedAppServerServiceAccountName + "-sar-role"
-	OpenStackLightspeedAppServerSARRoleBindingName = OpenStackLightspeedAppServerSARRoleName + "-binding"
 	OpenStackLightspeedAppServerContainerPort      = 8443
 	OpenStackLightspeedAppServerServicePort        = 8443
 	OpenStackLightspeedAppServerServiceName        = "lightspeed-app-server"
@@ -353,6 +352,23 @@ const (
 	// OpenStackLightspeedChecksumAnnotation is the annotation key used to store the checksum of resources.
 	OpenStackLightspeedChecksumAnnotation = "openstack.org/checksum"
 )
+
+// OpenStackLightspeedAppServerSARRoleName returns the name of the SAR
+// ClusterRole for the app server running in the given namespace. The name is
+// namespace-scoped because ClusterRole/ClusterRoleBinding objects are
+// cluster-scoped: multiple OpenStackLightspeed instances (one per namespace)
+// must not share a single SAR role, or reconciling/deleting one instance
+// would clobber another's RBAC.
+func OpenStackLightspeedAppServerSARRoleName(namespace string) string {
+	return fmt.Sprintf("%s-sar-role-%s", OpenStackLightspeedAppServerServiceAccountName, namespace)
+}
+
+// OpenStackLightspeedAppServerSARRoleBindingName returns the name of the SAR
+// ClusterRoleBinding for the app server running in the given namespace. See
+// OpenStackLightspeedAppServerSARRoleName for why this is namespace-scoped.
+func OpenStackLightspeedAppServerSARRoleBindingName(namespace string) string {
+	return OpenStackLightspeedAppServerSARRoleName(namespace) + "-binding"
+}
 
 // PostgreSQL Bootstrap Script - creates database, extensions, and schemas
 //

@@ -116,10 +116,12 @@ func reconcilePostgresBootstrapSecret(h *common_helper.Helper, ctx context.Conte
 	}
 
 	result, err := controllerutil.CreateOrPatch(ctx, h.GetClient(), secret, func() error {
-		// Set bootstrap script data
-		secret.StringData = map[string]string{
-			PostgresBootstrapScript:    PostgresBootStrapScriptContent,
-			PostgresBootstrapSQLScript: PostgresBootStrapSQLContent,
+		// Set bootstrap script data via Data (not StringData, which never
+		// round-trips through GET and would cause a spurious diff/update on
+		// every reconcile).
+		secret.Data = map[string][]byte{
+			PostgresBootstrapScript:    []byte(PostgresBootStrapScriptContent),
+			PostgresBootstrapSQLScript: []byte(PostgresBootStrapSQLContent),
 		}
 		return controllerutil.SetControllerReference(h.GetBeforeObject(), secret, h.GetScheme())
 	})

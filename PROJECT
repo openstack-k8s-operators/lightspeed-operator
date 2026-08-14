@@ -21,4 +21,13 @@ resources:
   kind: OpenStackLightspeed
   path: github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1
   version: v1beta1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: openstack.org
+  group: lightspeed
+  kind: OpenStackAssistant
+  path: github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1
+  version: v1beta1
 version: "3"

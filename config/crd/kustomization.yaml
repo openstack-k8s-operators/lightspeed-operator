@@ -3,6 +3,7 @@
 # It should be run by config/default
 resources:
 - bases/lightspeed.openstack.org_openstacklightspeeds.yaml
+- bases/lightspeed.openstack.org_openstackassistants.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

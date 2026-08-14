@@ -30,7 +30,10 @@ const (
 	OpenStackLightspeedContainerImage = "quay.io/openstack-lightspeed/rag-content:os-docs-2026.1-ogx"
 
 	// LCoreContainerImage is the fall-back container image for LCore
-	LCoreContainerImage = "quay.io/lightspeed-core/lightspeed-stack:latest"
+	// Pinned to the 0.6.1 digest: newer tags (including latest/dev-latest)
+	// have migrated to the OGX rename (llama_stack -> ogx), which
+	// llama_startup_wrapper.py does not support yet.
+	LCoreContainerImage = "quay.io/lightspeed-core/lightspeed-stack@sha256:b8de9b9507bbf2c667c833751987e0385ea30a5c9276c4832f70e3de105c91eb"
 
 	// ExporterContainerImage is the fall-back container image for the Dataverse Exporter
 	ExporterContainerImage = "quay.io/lightspeed-core/lightspeed-to-dataverse-exporter:latest"
@@ -370,4 +373,9 @@ func SetupDefaults() {
 	}
 
 	OpenStackLightspeedDefaultValues = openStackLightspeedDefaults
+
+	openStackAssistantDefaults = OpenStackAssistantDefaults{
+		ContainerImageURL: util.GetEnvVar(
+			"RELATED_IMAGE_OPENSTACK_ASSISTANT_IMAGE_URL_DEFAULT", OpenStackAssistantContainerImage),
+	}
 }

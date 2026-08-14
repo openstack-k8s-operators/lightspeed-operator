@@ -4,12 +4,34 @@ kind: ClusterRole
 metadata:
   name: manager-role
 rules:
+- nonResourceURLs:
+  - /ls-access
+  verbs:
+  - get
 - apiGroups:
   - ""
   resources:
   - configmaps
+  - serviceaccounts
   verbs:
+  - create
   - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -17,7 +39,9 @@ rules:
   verbs:
   - create
   - get
+  - list
   - update
+  - watch
 - apiGroups:
   - ""
   resourceNames:
@@ -45,6 +69,14 @@ rules:
   - list
   - watch
 - apiGroups:
+  - client.openstack.org
+  resources:
+  - openstackclients
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - config.openshift.io
   resources:
   - clusterversions
@@ -62,6 +94,7 @@ rules:
   - get
   - list
   - patch
+  - update
   - watch
 - apiGroups:
   - core.openstack.org
@@ -92,18 +125,39 @@ rules:
 - apiGroups:
   - lightspeed.openstack.org
   resources:
+  - openstackassistants
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - lightspeed.openstack.org
+  resources:
+  - openstackassistants/finalizers
+  - openstacklightspeeds/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - lightspeed.openstack.org
+  resources:
+  - openstackassistants/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - lightspeed.openstack.org
+  resources:
   - openstacklightspeeds
   verbs:
   - get
   - list
   - patch
   - watch
-- apiGroups:
-  - lightspeed.openstack.org
-  resources:
-  - openstacklightspeeds/finalizers
-  verbs:
-  - update
 - apiGroups:
   - lightspeed.openstack.org
   resources:
@@ -126,11 +180,32 @@ rules:
   - clusterroles
   verbs:
   - create
+  - delete
   - deletecollection
   - get
   - list
   - patch
+  - update
   - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - nonroot-v2
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -153,13 +228,12 @@ rules:
   - ""
   resources:
   - persistentvolumeclaims
-  - serviceaccounts
-  - services
   verbs:
   - create
   - get
   - list
   - patch
+  - update
   - watch
 - apiGroups:
   - ""
@@ -169,6 +243,17 @@ rules:
   - create
   - delete
   - deletecollection
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  - services
+  verbs:
+  - create
   - get
   - list
   - patch

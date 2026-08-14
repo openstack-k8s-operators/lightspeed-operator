@@ -31,6 +31,9 @@ const (
 	// OpenStackLightspeedMCPServerReadyCondition is set to True when the MCP server
 	// deployment succeeds. False indicates a failure during MCP server deployment.
 	OpenStackLightspeedMCPServerReadyCondition condition.Type = "OpenStackLightspeedMCPServerReady"
+
+	// OpenStackAssistantReadyCondition Status=True condition which indicates if OpenStackAssistant is configured and operational
+	OpenStackAssistantReadyCondition condition.Type = "OpenStackAssistantReady"
 )
 
 // Common Messages used by API objects.
@@ -73,4 +76,31 @@ const (
 
 	// DeploymentsNotReadyMessage
 	DeploymentsNotReadyMessage = "Waiting for deployments to be ready: %s"
+
+	// OpenStackAssistantReadyInitMessage
+	OpenStackAssistantReadyInitMessage = "OpenStack Assistant not started"
+
+	// OpenStackAssistantReadyRunningMessage
+	OpenStackAssistantReadyRunningMessage = "OpenStack Assistant in progress"
+
+	// OpenStackAssistantReadyMessage
+	OpenStackAssistantReadyMessage = "OpenStack Assistant created"
+
+	// OpenStackAssistantReadyErrorMessage
+	OpenStackAssistantReadyErrorMessage = "OpenStack Assistant error occured %s"
+
+	// OpenStackAssistantProviderSecretWaitingMessage
+	OpenStackAssistantProviderSecretWaitingMessage = "Waiting for lightspeed provider secret"
+
+	// OpenStackAssistantRecipesWaitingMessage
+	OpenStackAssistantRecipesWaitingMessage = "Waiting for Goose recipes ConfigMap"
+
+	// OpenStackAssistantHintsWaitingMessage
+	OpenStackAssistantHintsWaitingMessage = "Waiting for Goose hints ConfigMap"
+
+	// OpenStackAssistantSkillsWaitingMessage
+	OpenStackAssistantSkillsWaitingMessage = "Waiting for Goose skills ConfigMap"
+
+	// OpenStackAssistantServiceAccountWaitingMessage
+	OpenStackAssistantServiceAccountWaitingMessage = "Waiting for openstack-operator to create the assistant ServiceAccount"
 )

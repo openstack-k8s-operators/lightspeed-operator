@@ -47,6 +47,7 @@ import (
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 
 	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
+	lightspeedv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/lightspeed-operator/internal/controller"
 	// +kubebuilder:scaffold:imports
 )
@@ -68,6 +69,8 @@ func init() {
 	utilruntime.Must(openshiftv1.AddToScheme(scheme))
 
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+
+	utilruntime.Must(lightspeedv1beta1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -210,6 +213,15 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "OpenStackLightspeed")
 		os.Exit(1)
 	}
+
+	if err := (&controller.OpenStackAssistantReconciler{
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Kclient: kclient,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "OpenStackAssistant")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
@@ -239,6 +251,9 @@ func getWatchNamespaces() ([]string, error) {
 	ns, found := os.LookupEnv(watchNamespaceEnvVar)
 	if !found {
 		return []string{}, fmt.Errorf("%s must be set", watchNamespaceEnvVar)
+	}
+	if ns == "" {
+		return []string{}, nil
 	}
 
 	return strings.Split(ns, ","), nil

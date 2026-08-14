@@ -6,6 +6,45 @@ metadata:
       [
         {
           "apiVersion": "lightspeed.openstack.org/v1beta1",
+          "kind": "OpenStackAssistant",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "openstack-lightspeed-operator"
+            },
+            "name": "assistant"
+          },
+          "spec": {
+            "containerImage": "quay.io/dprince/goose:oc-fedora",
+            "env": [
+              {
+                "name": "GOOSE_MODEL",
+                "value": "gemini/models/gemini-2.5-flash"
+              },
+              {
+                "name": "LIGHTSPEED_API_KEY",
+                "value": "dummy"
+              }
+            ],
+            "goose": {
+              "hints": "assistant-hints",
+              "mcpServers": [
+                {
+                  "name": "openstack",
+                  "openstackClientRef": "openstackclient"
+                }
+              ],
+              "recipes": "assistant-recipes"
+            },
+            "lightspeedStack": {
+              "caBundleSecretName": "lightspeed-ca-bundle",
+              "providerSecret": "lightspeed-provider-config"
+            },
+            "provider": "goose"
+          }
+        },
+        {
+          "apiVersion": "lightspeed.openstack.org/v1beta1",
           "kind": "OpenStackLightspeed",
           "metadata": {
             "labels": {
@@ -25,7 +64,7 @@ metadata:
       ]
     capabilities: Basic Install
     categories: AI/Machine Learning
-    createdAt: "2026-08-10T12:06:44Z"
+    createdAt: "2026-08-14T12:17:08Z"
     description: AI-powered virtual assistant for Red Hat OpenStack Services on OpenShift
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -38,7 +77,7 @@ metadata:
     features.operators.openshift.io/token-auth-azure: "false"
     features.operators.openshift.io/token-auth-gcp: "false"
     operatorframework.io/suggested-namespace: openstack-lightspeed
-    operators.operatorframework.io/builder: operator-sdk-v1.38.0
+    operators.operatorframework.io/builder: operator-sdk-v1.41.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/openstack-k8s-operators/lightspeed-operator
   name: openstack-lightspeed-operator.v0.0.1
@@ -47,6 +86,24 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - description: OpenStackAssistant is the Schema for the openstackassistants API.
+      displayName: OpenStack Assistant
+      kind: OpenStackAssistant
+      name: openstackassistants.lightspeed.openstack.org
+      resources:
+      - kind: ServiceAccount
+        name: openstackassistant-goose
+        version: v1
+      - kind: ClusterRole
+        name: openstackassistant-goose-ls-access
+        version: v1
+      - kind: ClusterRoleBinding
+        name: openstackassistant-goose-ls-access-binding
+        version: v1
+      - kind: RoleBinding
+        name: openstackassistant-goose-nonroot-v2
+        version: v1
+      version: v1beta1
     - description: OpenStackLightspeed is the Schema for the openstacklightspeeds
         API
       displayName: Open Stack Lightspeed
@@ -169,12 +226,34 @@ spec:
     spec:
       clusterPermissions:
       - rules:
+        - nonResourceURLs:
+          - /ls-access
+          verbs:
+          - get
         - apiGroups:
           - ""
           resources:
           - configmaps
+          - serviceaccounts
           verbs:
+          - create
           - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
         - apiGroups:
           - ""
           resources:
@@ -182,7 +261,9 @@ spec:
           verbs:
           - create
           - get
+          - list
           - update
+          - watch
         - apiGroups:
           - ""
           resourceNames:
@@ -210,6 +291,14 @@ spec:
           - list
           - watch
         - apiGroups:
+          - client.openstack.org
+          resources:
+          - openstackclients
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
           - config.openshift.io
           resources:
           - clusterversions
@@ -227,6 +316,7 @@ spec:
           - get
           - list
           - patch
+          - update
           - watch
         - apiGroups:
           - core.openstack.org
@@ -257,18 +347,39 @@ spec:
         - apiGroups:
           - lightspeed.openstack.org
           resources:
+          - openstackassistants
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - lightspeed.openstack.org
+          resources:
+          - openstackassistants/finalizers
+          - openstacklightspeeds/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - lightspeed.openstack.org
+          resources:
+          - openstackassistants/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - lightspeed.openstack.org
+          resources:
           - openstacklightspeeds
           verbs:
           - get
           - list
           - patch
           - watch
-        - apiGroups:
-          - lightspeed.openstack.org
-          resources:
-          - openstacklightspeeds/finalizers
-          verbs:
-          - update
         - apiGroups:
           - lightspeed.openstack.org
           resources:
@@ -291,11 +402,32 @@ spec:
           - clusterroles
           verbs:
           - create
+          - delete
           - deletecollection
           - get
           - list
           - patch
+          - update
           - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - rolebindings
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - nonroot-v2
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
         - apiGroups:
           - authentication.k8s.io
           resources:
@@ -343,7 +475,7 @@ spec:
                 - name: RELATED_IMAGE_OPENSTACK_LIGHTSPEED_IMAGE_URL_DEFAULT
                   value: quay.io/openstack-lightspeed/rag-content:os-docs-2026.1-ogx
                 - name: RELATED_IMAGE_LCORE_IMAGE_URL_DEFAULT
-                  value: quay.io/lightspeed-core/lightspeed-stack:latest
+                  value: quay.io/lightspeed-core/lightspeed-stack@sha256:b8de9b9507bbf2c667c833751987e0385ea30a5c9276c4832f70e3de105c91eb
                 - name: RELATED_IMAGE_EXPORTER_IMAGE_URL_DEFAULT
                   value: quay.io/lightspeed-core/lightspeed-to-dataverse-exporter:latest
                 - name: RELATED_IMAGE_POSTGRES_IMAGE_URL_DEFAULT
@@ -372,11 +504,11 @@ spec:
                   periodSeconds: 10
                 resources:
                   limits:
-                    cpu: 500m
-                    memory: 128Mi
+                    cpu: "1"
+                    memory: 512Mi
                   requests:
-                    cpu: 10m
-                    memory: 64Mi
+                    cpu: 20m
+                    memory: 128Mi
                 securityContext:
                   allowPrivilegeEscalation: false
                   capabilities:
@@ -442,13 +574,12 @@ spec:
           - ""
           resources:
           - persistentvolumeclaims
-          - serviceaccounts
-          - services
           verbs:
           - create
           - get
           - list
           - patch
+          - update
           - watch
         - apiGroups:
           - ""
@@ -458,6 +589,17 @@ spec:
           - create
           - delete
           - deletecollection
+          - get
+          - list
+          - patch
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts
+          - services
+          verbs:
+          - create
           - get
           - list
           - patch
@@ -516,7 +658,7 @@ spec:
   relatedImages:
   - image: quay.io/openstack-lightspeed/rag-content:os-docs-2026.1-ogx
     name: openstack-lightspeed-image-url-default
-  - image: quay.io/lightspeed-core/lightspeed-stack:latest
+  - image: quay.io/lightspeed-core/lightspeed-stack@sha256:b8de9b9507bbf2c667c833751987e0385ea30a5c9276c4832f70e3de105c91eb
     name: lcore-image-url-default
   - image: quay.io/lightspeed-core/lightspeed-to-dataverse-exporter:latest
     name: exporter-image-url-default
