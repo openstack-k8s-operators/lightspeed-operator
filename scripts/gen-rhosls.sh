@@ -33,7 +33,10 @@ spec:
 EOF
 
 for _i in $(seq 1 20); do
-  CSV_VERSION=$(oc get --ignore-not-found=true packagemanifest openstack-lightspeed-operator -o go-template="{{range .status.channels}}{{if eq .name \"${CHANNEL}\"}}{{.currentCSV}}{{\"\n\"}}{{end}}{{end}}")
+  CSV_VERSION=$(oc get --ignore-not-found=true packagemanifest \
+    --field-selector "metadata.name=openstack-lightspeed-operator" \
+    -l "catalog=${CATALOG}" \
+    -o go-template="{{range .items}}{{range .status.channels}}{{if eq .name \"${CHANNEL}\"}}{{.currentCSV}}{{\"\n\"}}{{end}}{{end}}{{end}}")
   if [ -n "${CSV_VERSION}" ]; then
     break
   fi
