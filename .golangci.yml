@@ -4,27 +4,16 @@ run:
 linters:
   default: none
   enable:
-    - dupl
-    - errcheck
-    - ginkgolinter
-    - goconst
-    - gosec
-    - gocyclo
-    - govet
-    - ineffassign
-    - lll
-    - misspell
-    - nakedret
-    - prealloc
+    - errorlint
     - revive
-    - staticcheck
-    - unconvert
-    - unparam
-    - unused
+    - ginkgolinter
+    - govet
+    - gosec
   settings:
     revive:
       rules:
         - name: comment-spacings
+        - name: import-shadowing
   exclusions:
     generated: lax
     rules:

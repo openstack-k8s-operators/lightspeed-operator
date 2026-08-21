@@ -133,6 +133,7 @@ func buildLCoreInferenceConfig(_ *common_helper.Helper, instance *apiv1beta1.Ope
 // buildLCoreDatabaseConfig configures persistent database storage (PostgreSQL)
 func buildLCoreDatabaseConfig(h *common_helper.Helper, _ *apiv1beta1.OpenStackLightspeed) map[string]interface{} {
 	return map[string]interface{}{
+		// #nosec G101 -- values are env-var substitution placeholders, not hardcoded credentials
 		"postgres": map[string]interface{}{
 			"host":         PostgresServiceName + "." + h.GetBeforeObject().GetNamespace() + ".svc",
 			"port":         PostgresServicePort,
@@ -165,6 +166,7 @@ func buildLCoreCustomizationConfig() map[string]interface{} {
 func buildLCoreConversationCacheConfig(h *common_helper.Helper, _ *apiv1beta1.OpenStackLightspeed) map[string]interface{} {
 	return map[string]interface{}{
 		"type": "postgres",
+		// #nosec G101 -- values are env-var substitution placeholders, not hardcoded credentials
 		"postgres": map[string]interface{}{
 			"host":         PostgresServiceName + "." + h.GetBeforeObject().GetNamespace() + ".svc",
 			"port":         PostgresServicePort,

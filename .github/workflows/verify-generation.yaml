@@ -23,7 +23,7 @@ jobs:
       uses: redhat-actions/openshift-tools-installer@e3b32c2ab7b064b2ce189121c4a49f509a99a7b4 # v3
       with:
         source: github
-        operator-sdk: 1.38.0
+        operator-sdk: 1.42.3
 
     - name: Verify generated files are up to date and fail if anything changed
       run: |

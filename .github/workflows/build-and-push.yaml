@@ -60,7 +60,7 @@ jobs:
         uses: redhat-actions/openshift-tools-installer@e3b32c2ab7b064b2ce189121c4a49f509a99a7b4 # v3
         with:
           source: github
-          operator-sdk: 1.38.0
+          operator-sdk: 1.42.3
 
       - name: Log in to Quay
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4

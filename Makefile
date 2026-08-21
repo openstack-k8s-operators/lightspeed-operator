@@ -3,12 +3,7 @@
 # To re-generate a bundle for another specific version without changing the standard setup, you can:
 # - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
-ifeq ($(origin VERSION), undefined)
-TAG ?= latest
-VERSION := 0.0.1
-else
-TAG ?= v$(VERSION)
-endif
+VERSION ?= 0.0.1
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
@@ -33,22 +28,12 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 # This variable is used to construct full image tags for bundle and catalog images.
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# lightspeed.openstack.org/openstack-lightspeed-operator-bundle:$TAG and lightspeed.openstack.org/openstack-lightspeed-operator-catalog:$TAG.
+# openstack.org/lightspeed-operator-bundle:$VERSION and openstack.org/lightspeed-operator-catalog:$VERSION.
 IMAGE_TAG_BASE ?= quay.io/openstack-lightspeed/operator
-
-# The image tag given to the resulting catalog image (e.g. make catalog-build CATALOG_IMG=example.com/operator-catalog:v0.2.0).
-CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:$(TAG)
-
-CATALOG_NAME ?= openstack-lightspeed-catalog
-CATALOG_CHANNEL ?= alpha
-
-# OpenShift internal registry support for local development/testing.
-OCP_REGISTRY_NAMESPACE ?= openstack-lightspeed
-OCP_INTERNAL_REGISTRY ?= image-registry.openshift-image-registry.svc:5000
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
-BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:$(TAG)
+BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:v$(VERSION)
 
 # BUNDLE_GEN_FLAGS are the flags passed to the operator-sdk generate bundle command
 BUNDLE_GEN_FLAGS ?= -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
@@ -63,13 +48,9 @@ endif
 
 # Set the Operator SDK version to use. By default, what is installed on the system is used.
 # This is useful for CI or a project to utilize a specific version of the operator-sdk toolkit.
-OPERATOR_SDK_VERSION ?= v1.38.0-ocp
+OPERATOR_SDK_VERSION ?= v1.42.3
 # Image URL to use all building/pushing image targets
 IMG ?= $(IMAGE_TAG_BASE):latest
-# ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.30.0
-
-BRANCH ?= main
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -119,38 +100,48 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-.PHONY: gowork
-gowork: ## Generate go.work file
-	test -f go.work || go work init
-	go work use .
-	go work sync
-
-.PHONY: force-bump
-force-bump: ## Force bump after tagging
-	for dep in $$(cat go.mod | grep openstack-k8s-operators | grep -vE -- 'indirect|lightspeed-operator|^replace|^//' | awk '{print $$1}'); do \
-		go get $$dep@$(BRANCH) ; \
-	done
-
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...
-
-.PHONY: tidy
-tidy: ## Run go mod tidy on every mod file in the repo
-	go mod tidy
 
 .PHONY: vet
 vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: manifests generate fmt vet envtest ## Run tests.
+test: manifests generate fmt vet setup-envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
 
-# Utilize Kind or modify the e2e tests to load the image locally, enabling compatibility with other vendors.
-.PHONY: test-e2e  # Run the e2e tests against a Kind k8s instance that is spun up.
-test-e2e:
-	go test ./test/e2e/ -v -ginkgo.v
+# TODO(user): To use a different vendor for e2e tests, modify the setup under 'tests/e2e'.
+# The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
+# CertManager is installed by default; skip with:
+# - CERT_MANAGER_INSTALL_SKIP=true
+KIND_CLUSTER ?= lightspeed-operator-test-e2e
+
+.PHONY: setup-test-e2e
+setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
+	@command -v $(KIND) >/dev/null 2>&1 || { \
+		echo "Kind is not installed. Please install Kind manually."; \
+		exit 1; \
+	}
+	@case "$$($(KIND) get clusters)" in \
+		*"$(KIND_CLUSTER)"*) \
+			echo "Kind cluster '$(KIND_CLUSTER)' already exists. Skipping creation." ;; \
+		*) \
+			echo "Creating Kind cluster '$(KIND_CLUSTER)'..."; \
+			$(KIND) create cluster --name $(KIND_CLUSTER) ;; \
+	esac
+
+.PHONY: test-e2e
+test-e2e: setup-test-e2e manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
+	@status=0; \
+	KIND_CLUSTER=$(KIND_CLUSTER) go test ./test/e2e/ -v -ginkgo.v || status=$$?; \
+	$(MAKE) cleanup-test-e2e; \
+	exit $$status
+
+.PHONY: cleanup-test-e2e
+cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
+	@$(KIND) delete cluster --name $(KIND_CLUSTER)
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter
@@ -160,17 +151,15 @@ lint: golangci-lint ## Run golangci-lint linter
 lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 	$(GOLANGCI_LINT) run --fix
 
-##@ Security
-
-.PHONY: govulncheck
-govulncheck: govulncheck-install ## Run govulncheck vulnerability scanner with ignore list.
-	@GOVULNCHECK_BIN="$(GOVULNCHECK)" ./hack/govulncheck-wrapper.sh
+.PHONY: lint-config
+lint-config: golangci-lint ## Verify golangci-lint linter configuration
+	$(GOLANGCI_LINT) config verify
 
 ##@ Build
 
 .PHONY: build
 build: manifests generate fmt vet ## Build manager binary.
-	GOMAXPROCS=$(GOMAXPROCS) go build -o bin/manager cmd/main.go
+	go build -o bin/manager cmd/main.go
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
@@ -181,7 +170,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build --build-arg GOMAXPROCS=$(GOMAXPROCS) -t ${IMG} .
+	$(CONTAINER_TOOL) build -t ${IMG} .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
@@ -198,10 +187,10 @@ PLATFORMS ?= linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
 docker-buildx: ## Build and push docker image for the manager for cross-platform support
 	# copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
 	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
-	- $(CONTAINER_TOOL) buildx create --name openstack-lightspeed-operator-builder
-	$(CONTAINER_TOOL) buildx use openstack-lightspeed-operator-builder
+	- $(CONTAINER_TOOL) buildx create --name lightspeed-operator-builder
+	$(CONTAINER_TOOL) buildx use lightspeed-operator-builder
 	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile.cross .
-	- $(CONTAINER_TOOL) buildx rm openstack-lightspeed-operator-builder
+	- $(CONTAINER_TOOL) buildx rm lightspeed-operator-builder
 	rm Dockerfile.cross
 
 .PHONY: build-installer
@@ -233,27 +222,6 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
 
-# Deploy using the catalog image.
-.PHONY: openstack-lightspeed-deploy
-openstack-lightspeed-deploy: export OUTPUT_DIR = out
-openstack-lightspeed-deploy: ## Deploy using a catalog image.
-	bash scripts/gen-catalog.sh $(CATALOG_IMG) $(CATALOG_NAME)
-	oc apply -f $(OUTPUT_DIR)/catalog
-	bash scripts/gen-rhosls.sh $(CATALOG_NAME) $(CATALOG_CHANNEL)
-	oc apply -f $(OUTPUT_DIR)/rhosls
-	bash scripts/confirm-rhosls-running.sh
-
-# Undeploy using the catalog image.
-# Remove OpenStackLightspeds so the namespace deletion doesn't get stuck
-.PHONY: openstack-lightspeed-undeploy
-openstack-lightspeed-undeploy: export OUTPUT_DIR = out
-openstack-lightspeed-undeploy: ## Undeploy using a catalog image.
-	oc delete openstacklightspeed --all -n openstack-lightspeed --ignore-not-found=true --timeout=120s
-	find out/{catalog,rhosls} -name "*.yaml" -printf " -f %p" | xargs oc delete --ignore-not-found=true
-
-CATALOG_NAME ?= openstack-lightspeed-catalog
-CATALOG_CHANNEL ?= alpha
-
 ##@ Dependencies
 
 ## Location to install dependencies to
@@ -263,20 +231,20 @@ $(LOCALBIN):
 
 ## Tool Binaries
 KUBECTL ?= kubectl
+KIND ?= kind
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
-KUTTL ?= $(LOCALBIN)/kubectl-kuttl
-GOVULNCHECK ?= $(LOCALBIN)/govulncheck
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v5.4.2
-CONTROLLER_TOOLS_VERSION ?= v0.16.5
-ENVTEST_VERSION ?= release-0.22
+KUSTOMIZE_VERSION ?= v5.6.0
+CONTROLLER_TOOLS_VERSION ?= v0.18.0
+#ENVTEST_VERSION is the version of controller-runtime release branch to fetch the envtest setup script (i.e. release-0.20)
+ENVTEST_VERSION ?= $(shell go list -m -f "{{ .Version }}" sigs.k8s.io/controller-runtime | awk -F'[v.]' '{printf "release-%d.%d", $$2, $$3}')
+#ENVTEST_K8S_VERSION is the version of Kubernetes to use for setting up ENVTEST binaries (i.e. 1.31)
+ENVTEST_K8S_VERSION ?= $(shell go list -m -f "{{ .Version }}" k8s.io/api | awk -F'[v.]' '{printf "1.%d", $$3}')
 GOLANGCI_LINT_VERSION ?= v2.12.2
-KUTTL_VERSION ?= 0.22.0
-GOVULNCHECK_VERSION ?= v1.6.0
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
@@ -288,6 +256,14 @@ controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessar
 $(CONTROLLER_GEN): $(LOCALBIN)
 	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,$(CONTROLLER_TOOLS_VERSION))
 
+.PHONY: setup-envtest
+setup-envtest: envtest ## Download the binaries required for ENVTEST in the local bin directory.
+	@echo "Setting up envtest binaries for Kubernetes version $(ENVTEST_K8S_VERSION)..."
+	@$(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path || { \
+		echo "Error: Failed to set up envtest binaries for version $(ENVTEST_K8S_VERSION)."; \
+		exit 1; \
+	}
+
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
 $(ENVTEST): $(LOCALBIN)
@@ -297,53 +273,6 @@ $(ENVTEST): $(LOCALBIN)
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(LOCALBIN) $(GOLANGCI_LINT_VERSION)
-
-.PHONY: kuttl
-kuttl: $(KUTTL) ## Download kubectl-kuttl locally if necessary.
-$(KUTTL): $(LOCALBIN)
-	test -s $(LOCALBIN)/kubectl-kuttl || curl -L -o $(LOCALBIN)/kubectl-kuttl https://github.com/kudobuilder/kuttl/releases/download/v$(KUTTL_VERSION)/kubectl-kuttl_$(KUTTL_VERSION)_linux_x86_64
-	chmod +x $(LOCALBIN)/kubectl-kuttl
-
-.PHONY: kuttl-test
-kuttl-test: kuttl ## Run kuttl tests
-	@command -v diff >/dev/null 2>&1 || { echo "ERROR: 'diff' command is required for KUTTL tests but not found in PATH" >&2; exit 1; }
-	@command -v oc >/dev/null 2>&1 || { echo "ERROR: 'oc' command is required for KUTTL tests but not found in PATH" >&2; exit 1; }
-	$(LOCALBIN)/kubectl-kuttl test --config kuttl-test.yaml test/kuttl/tests $(KUTTL_ARGS)
-
-.PHONY: govulncheck-install
-govulncheck-install: $(LOCALBIN) ## Download govulncheck locally if necessary.
-	$(call go-install-tool,$(GOVULNCHECK),golang.org/x/vuln/cmd/govulncheck,$(GOVULNCHECK_VERSION))
-
-.PHONY: kuttl-test-run
-kuttl-test-run: kuttl openstack-lightspeed-deploy kuttl-test openstack-lightspeed-undeploy
-
-.PHONY: ocp-registry-push
-ocp-registry-push: ## Push images to the OpenShift internal registry.
-	bash scripts/ocp-registry-push.sh $(CONTAINER_TOOL) $(OCP_REGISTRY_NAMESPACE) $(IMG) $(CATALOG_IMG)
-
-.PHONY: ocp-catalog-build
-ocp-catalog-build: opm ## Build a catalog image for the OpenShift internal registry.
-	bash scripts/ocp-catalog-build.sh $(CONTAINER_TOOL) $(BUNDLE_IMG) $(CATALOG_IMG) $(OPM)
-
-.PHONY: kuttl-test-ocp
-kuttl-test-ocp: IMG = $(OCP_INTERNAL_REGISTRY)/$(OCP_REGISTRY_NAMESPACE)/operator:latest
-kuttl-test-ocp: BUNDLE_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-bundle:$(TAG)
-kuttl-test-ocp: CATALOG_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-catalog:$(TAG)
-kuttl-test-ocp: docker-build bundle bundle-build ocp-catalog-build ocp-registry-push kuttl-test-run
-
-.PHONY: ocp-deploy
-ocp-deploy: IMG = $(OCP_INTERNAL_REGISTRY)/$(OCP_REGISTRY_NAMESPACE)/operator:latest
-ocp-deploy: BUNDLE_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-bundle:$(TAG)
-ocp-deploy: CATALOG_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-catalog:$(TAG)
-ocp-deploy: docker-build bundle bundle-build ocp-catalog-build ocp-registry-push openstack-lightspeed-deploy ## Build, push, and deploy the operator on an OCP cluster.
-
-.PHONY: ocp-deploy-cleanup
-ocp-deploy-cleanup: IMG = $(OCP_INTERNAL_REGISTRY)/$(OCP_REGISTRY_NAMESPACE)/operator:latest
-ocp-deploy-cleanup: BUNDLE_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-bundle:$(TAG)
-ocp-deploy-cleanup: CATALOG_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-catalog:$(TAG)
-ocp-deploy-cleanup: openstack-lightspeed-undeploy ## Clean up everything created by ocp-deploy.
-	oc delete imagestreamtag operator-catalog:$(TAG) -n openshift-marketplace --ignore-not-found=true
-	oc delete namespace $(OCP_REGISTRY_NAMESPACE) --ignore-not-found=true --wait
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary
@@ -402,7 +331,7 @@ ifeq (,$(shell which opm 2>/dev/null))
 	set -e ;\
 	mkdir -p $(dir $(OPM)) ;\
 	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
-	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.23.0/$${OS}-$${ARCH}-opm ;\
+	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.55.0/$${OS}-$${ARCH}-opm ;\
 	chmod +x $(OPM) ;\
 	}
 else
@@ -413,6 +342,9 @@ endif
 # A comma-separated list of bundle images (e.g. make catalog-build BUNDLE_IMGS=example.com/operator-bundle:v0.1.0,example.com/operator-bundle:v0.2.0).
 # These images MUST exist in a registry and be pull-able.
 BUNDLE_IMGS ?= $(BUNDLE_IMG)
+
+# The image tag given to the resulting catalog image (e.g. make catalog-build CATALOG_IMG=example.com/operator-catalog:v0.2.0).
+CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:v$(VERSION)
 
 # Set CATALOG_BASE_IMG to an existing catalog image tag to add $BUNDLE_IMGS to that image.
 ifneq ($(origin CATALOG_BASE_IMG), undefined)
@@ -430,3 +362,104 @@ catalog-build: opm ## Build a catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+
+##@ Custom (not generated using operator-sdk)
+
+# OpenShift internal registry support for local development/testing.
+OCP_REGISTRY_NAMESPACE ?= openstack-lightspeed
+OCP_INTERNAL_REGISTRY ?= image-registry.openshift-image-registry.svc:5000
+KUTTL ?= $(LOCALBIN)/kubectl-kuttl
+KUTTL_VERSION ?= 0.22.0
+GOVULNCHECK_VERSION ?= v1.6.0
+GOVULNCHECK ?= $(LOCALBIN)/govulncheck
+
+# Branch used by force-bump when re-resolving openstack-k8s-operators dependencies.
+BRANCH ?= main
+# Catalog name/channel used by the openstack-lightspeed-deploy/undeploy targets.
+CATALOG_NAME ?= openstack-lightspeed-catalog
+CATALOG_CHANNEL ?= alpha
+
+.PHONY: gowork
+gowork: ## Generate go.work file
+	test -f go.work || go work init
+	go work use .
+	go work sync
+
+.PHONY: force-bump
+force-bump: ## Force bump after tagging
+	for dep in $$(cat go.mod | grep openstack-k8s-operators | grep -vE -- 'indirect|lightspeed-operator|^replace|^//' | awk '{print $$1}'); do \
+		go get $$dep@$(BRANCH) ; \
+	done
+
+.PHONY: tidy
+tidy: ## Run go mod tidy on every mod file in the repo
+	go mod tidy
+
+.PHONY: govulncheck
+govulncheck: govulncheck-install ## Run govulncheck vulnerability scanner with ignore list.
+	@GOVULNCHECK_BIN="$(GOVULNCHECK)" ./hack/govulncheck-wrapper.sh
+
+
+.PHONY: govulncheck-install
+govulncheck-install: $(LOCALBIN) ## Download govulncheck locally if necessary.
+	$(call go-install-tool,$(GOVULNCHECK),golang.org/x/vuln/cmd/govulncheck,$(GOVULNCHECK_VERSION))
+
+.PHONY: openstack-lightspeed-deploy
+openstack-lightspeed-deploy: export OUTPUT_DIR = out
+openstack-lightspeed-deploy: ## Deploy using a catalog image.
+	bash scripts/gen-catalog.sh $(CATALOG_IMG) $(CATALOG_NAME)
+	oc apply -f $(OUTPUT_DIR)/catalog
+	bash scripts/gen-rhosls.sh $(CATALOG_NAME) $(CATALOG_CHANNEL)
+	oc apply -f $(OUTPUT_DIR)/rhosls
+	bash scripts/confirm-rhosls-running.sh
+
+# Undeploy using the catalog image.
+# Remove OpenStackLightspeds so the namespace deletion doesn't get stuck
+.PHONY: openstack-lightspeed-undeploy
+openstack-lightspeed-undeploy: export OUTPUT_DIR = out
+openstack-lightspeed-undeploy: ## Undeploy using a catalog image.
+	oc delete openstacklightspeed --all -n openstack-lightspeed --ignore-not-found=true --timeout=120s
+	find out/catalog out/rhosls -name "*.yaml" -printf " -f %p" | xargs oc delete --ignore-not-found=true
+
+.PHONY: kuttl
+kuttl: $(KUTTL) ## Download kubectl-kuttl locally if necessary.
+$(KUTTL): $(LOCALBIN)
+	test -s $(LOCALBIN)/kubectl-kuttl || curl -L -o $(LOCALBIN)/kubectl-kuttl https://github.com/kudobuilder/kuttl/releases/download/v$(KUTTL_VERSION)/kubectl-kuttl_$(KUTTL_VERSION)_linux_x86_64
+	chmod +x $(LOCALBIN)/kubectl-kuttl
+
+.PHONY: kuttl-test
+kuttl-test: kuttl ## Run kuttl tests
+	@command -v diff >/dev/null 2>&1 || { echo "ERROR: 'diff' command is required for KUTTL tests but not found in PATH" >&2; exit 1; }
+	@command -v oc >/dev/null 2>&1 || { echo "ERROR: 'oc' command is required for KUTTL tests but not found in PATH" >&2; exit 1; }
+	$(LOCALBIN)/kubectl-kuttl test --config kuttl-test.yaml test/kuttl/tests $(KUTTL_ARGS)
+
+.PHONY: ocp-registry-push
+ocp-registry-push: ## Push images to the OpenShift internal registry.
+	bash scripts/ocp-registry-push.sh $(CONTAINER_TOOL) $(OCP_REGISTRY_NAMESPACE) $(IMG) $(CATALOG_IMG)
+
+.PHONY: ocp-catalog-build
+ocp-catalog-build: opm ## Build a catalog image for the OpenShift internal registry.
+	bash scripts/ocp-catalog-build.sh $(CONTAINER_TOOL) $(BUNDLE_IMG) $(CATALOG_IMG) $(OPM)
+
+.PHONY: kuttl-test-run
+kuttl-test-run: kuttl openstack-lightspeed-deploy kuttl-test openstack-lightspeed-undeploy
+
+.PHONY: kuttl-test-ocp
+kuttl-test-ocp: IMG = $(OCP_INTERNAL_REGISTRY)/$(OCP_REGISTRY_NAMESPACE)/operator:latest
+kuttl-test-ocp: BUNDLE_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-bundle:v$(VERSION)
+kuttl-test-ocp: CATALOG_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-catalog:v$(VERSION)
+kuttl-test-ocp: docker-build bundle bundle-build ocp-catalog-build ocp-registry-push kuttl-test-run ## Run kuttl tests against locally built catalog image
+
+.PHONY: ocp-deploy
+ocp-deploy: IMG = $(OCP_INTERNAL_REGISTRY)/$(OCP_REGISTRY_NAMESPACE)/operator:latest
+ocp-deploy: BUNDLE_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-bundle:v$(VERSION)
+ocp-deploy: CATALOG_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-catalog:v$(VERSION)
+ocp-deploy: docker-build bundle bundle-build ocp-catalog-build ocp-registry-push openstack-lightspeed-deploy ## Build, push, and deploy the operator on an OCP cluster.
+
+.PHONY: ocp-deploy-cleanup
+ocp-deploy-cleanup: IMG = $(OCP_INTERNAL_REGISTRY)/$(OCP_REGISTRY_NAMESPACE)/operator:latest
+ocp-deploy-cleanup: BUNDLE_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-bundle:v$(VERSION)
+ocp-deploy-cleanup: CATALOG_IMG = $(OCP_INTERNAL_REGISTRY)/openshift-marketplace/operator-catalog:v$(VERSION)
+ocp-deploy-cleanup: openstack-lightspeed-undeploy ## Clean up everything created by ocp-deploy.
+	oc delete imagestreamtag operator-catalog:v$(VERSION) -n openshift-marketplace --ignore-not-found=true
+	oc delete namespace $(OCP_REGISTRY_NAMESPACE) --ignore-not-found=true --wait

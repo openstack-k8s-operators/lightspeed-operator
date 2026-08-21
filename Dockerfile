@@ -15,7 +15,7 @@ RUN go mod download
 # Copy the go source
 COPY cmd/main.go cmd/main.go
 COPY api/ api/
-COPY internal/controller/ internal/controller/
+COPY internal/ internal/
 
 # Build
 # the GOARCH has not a default value to allow the binary be built according to the host where the command
@@ -26,7 +26,8 @@ RUN GOMAXPROCS=${GOMAXPROCS} CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARG
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.4
+# FROM gcr.io/distroless/static:nonroot
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.6
 WORKDIR /
 COPY --from=builder /workspace/manager .
 USER 65532:65532

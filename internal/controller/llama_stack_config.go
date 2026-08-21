@@ -317,6 +317,7 @@ func buildLlamaStackStorage(_ *common_helper.Helper, instance *apiv1beta1.OpenSt
 			"type":    "kv_sqlite",
 			"db_path": "/tmp/llama-stack/kv_store.db",
 		},
+		// #nosec G101 -- values are env-var substitution placeholders, not hardcoded credentials
 		"postgres_backend": map[string]interface{}{
 			"type":     "sql_postgres",
 			"host":     fmt.Sprintf("lightspeed-postgres-server.%s.svc", instance.GetNamespace()),

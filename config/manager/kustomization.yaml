@@ -6,9 +6,3 @@ images:
 - name: controller
   newName: quay.io/openstack-lightspeed/operator
   newTag: latest
-patches:
-- patch: '[{"op": "replace", "path": "/spec/template/spec/containers/0/env/0/value",
-    "value": "latest"}]'
-  target:
-    kind: Deployment
-    name: controller-manager

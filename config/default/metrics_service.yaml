@@ -6,8 +6,16 @@ metadata:
     app.kubernetes.io/name: openstack-lightspeed-operator
     app.kubernetes.io/managed-by: kustomize
   annotations:
-    service.beta.openshift.io/serving-cert-secret-name: operator-metrics-tls
-  name: metrics
+    service.beta.openshift.io/serving-cert-secret-name: metrics-server-cert
+
+  # NOTE(lpiwowar): Do NOT restore the operator-sdk scaffold default name
+  # "controller-manager-metrics-service". Service names must be a valid RFC 1035
+  # DNS label (<= 63 chars), and kustomize prepends the namePrefix
+  # "openstack-lightspeed-operator-" (30 chars). The scaffold default (34 chars)
+  # would total 64 chars and be rejected on apply, blocking the deploy. Keeping
+  # this shortened to "controller-manager-metrics" (26 chars) stays under the
+  # limit (56 chars total). Re-check this after any operator-sdk regeneration.
+  name: controller-manager-metrics
   namespace: system
 spec:
   ports:
@@ -17,3 +25,4 @@ spec:
     targetPort: 8443
   selector:
     control-plane: controller-manager
+    app.kubernetes.io/name: openstack-lightspeed-operator
