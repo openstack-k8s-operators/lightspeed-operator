@@ -21,6 +21,7 @@ import (
 	"time"
 )
 
+// Hello world
 // OpenStack Lightspeed Operator Constants
 const (
 	// -- Operator Settings ------------------------------------------------------
