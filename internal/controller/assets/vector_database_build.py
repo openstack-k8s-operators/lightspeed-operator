@@ -185,7 +185,13 @@ def ogx_process(ogx_config_source_path: Path, ogx_config_target: dict[str, Any])
     add_unique(tgt_models, src_model, "model_id")
 
     # Populate registered_resources.vector_stores
-    embedding_model = f"{src_model['provider_id']}/{embedding_model_dir}"
+    # OGX 1.0.2+ uses provider_id/model_id as the model identifier
+    model_id = src_model["model_id"]
+    provider_id = src_model["provider_id"]
+    if model_id.startswith(f"{provider_id}/"):
+        embedding_model = model_id
+    else:
+        embedding_model = f"{provider_id}/{model_id}"
     src_vstore = ogx_config_source["registered_resources"]["vector_stores"][0].copy()
     src_vstore["embedding_model"] = embedding_model
     tgt_vstores = ogx_config_target["registered_resources"]["vector_stores"]

@@ -30,7 +30,7 @@ const (
 	OpenStackLightspeedContainerImage = "quay.io/openstack-lightspeed/rag-content:os-docs-2026.1-ogx"
 
 	// LCoreContainerImage is the fall-back container image for LCore
-	LCoreContainerImage = "quay.io/lightspeed-core/lightspeed-stack:latest"
+	LCoreContainerImage = "quay.io/lightspeed-core/lightspeed-stack:dev-latest"
 
 	// ExporterContainerImage is the fall-back container image for the Dataverse Exporter
 	ExporterContainerImage = "quay.io/lightspeed-core/lightspeed-to-dataverse-exporter:latest"

@@ -26,7 +26,7 @@ case "$CONFIG_TYPE" in
     POD_PATH="/vector-db-discovered-values/lightspeed-stack.yaml"
     ;;
   ogx_config)
-    CONTAINER="llama-stack"
+    CONTAINER="ogx"
     POD_PATH="/vector-db-discovered-values/ogx_config.yaml"
     ;;
   *)

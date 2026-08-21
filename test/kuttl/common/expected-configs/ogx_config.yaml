@@ -1,8 +1,7 @@
 apis:
-- agents
 - files
 - inference
-- safety
+- responses
 - tool_runtime
 - vector_io
 benchmarks: []
@@ -15,30 +14,17 @@ inference_store:
   type: sqlite
 logging: null
 metadata_store:
-  db_path: /tmp/llama-stack/registry.db
+  db_path: /tmp/ogx/registry.db
   namespace: null
   type: sqlite
 providers:
-  agents:
-  - config:
-      persistence:
-        agent_state:
-          backend: kv_default
-          namespace: agent_state
-          table_name: agent_state
-        responses:
-          backend: sql_default
-          namespace: agent_responses
-          table_name: agent_responses
-    provider_id: meta-reference
-    provider_type: inline::meta-reference
   files:
   - config:
       metadata_store:
         backend: sql_default
         namespace: files_metadata
         table_name: files_metadata
-      storage_dir: /tmp/llama-stack-files
+      storage_dir: /tmp/ogx-files
     provider_id: localfs
     provider_type: inline::localfs
   inference:
@@ -50,18 +36,26 @@ providers:
       base_url: http://mock-llm-api-server-pod:8000/v1
     provider_id: openstack-lightspeed-provider
     provider_type: remote::openai
-  safety:
+  responses:
   - config:
-      excluded_categories: []
-    provider_id: llama-guard
-    provider_type: inline::llama-guard
+      persistence:
+        agent_state:
+          backend: kv_default
+          namespace: agent_state
+          table_name: agent_state
+        responses:
+          backend: sql_default
+          namespace: agent_responses
+          table_name: agent_responses
+    provider_id: builtin
+    provider_type: inline::builtin
   tool_runtime:
   - config: {}
     provider_id: model-context-protocol
     provider_type: remote::model-context-protocol
   - config: {}
-    provider_id: rag-runtime
-    provider_type: inline::rag-runtime
+    provider_id: file-search
+    provider_type: inline::file-search
   vector_io:
   - config:
       kvstore:
@@ -88,7 +82,7 @@ providers:
       collection_name: ${env.SOLR_COLLECTION:=portal-rag}
       content_field: ${env.SOLR_CONTENT_FIELD:=chunk}
       embedding_dimension: ${env.SOLR_EMBEDDING_DIM:=384}
-      embedding_model: sentence-transformers//vector-db-discovered-values/okp_embeddings_model
+      embedding_model: sentence-transformers/solr_embedding
       persistence:
         backend: kv_default
         namespace: portal-rag
@@ -123,15 +117,15 @@ registered_resources:
     provider_model_id: ${env.VECTOR_DB_DATA_PATH}/UUID/embeddings_model
     model_type: embedding
   tool_groups:
-  - provider_id: rag-runtime
-    toolgroup_id: builtin::rag
+  - provider_id: file-search
+    toolgroup_id: builtin::file_search
   vector_stores:
   - embedding_dimension: 384
-    embedding_model: sentence-transformers//vector-db-discovered-values/okp_embeddings_model
+    embedding_model: sentence-transformers/solr_embedding
     provider_id: okp_solr
     vector_store_id: portal-rag
   - embedding_dimension: 768
-    embedding_model: sentence-transformers/${env.VECTOR_DB_DATA_PATH}/UUID/embeddings_model
+    embedding_model: sentence-transformers/all-mpnet-base-v2
     provider_id: os-docs-2026.1-ogx
     vector_store_id: vs_UUID
 scoring_fns: []
@@ -146,17 +140,17 @@ server:
 storage:
   backends:
     kv_default:
-      db_path: /tmp/llama-stack/kv_store.db
+      db_path: /tmp/ogx/kv_store.db
       type: kv_sqlite
     postgres_backend:
-      db: llamastack
+      db: ogx
       host: lightspeed-postgres-server.openstack-lightspeed.svc
       password: ${env.POSTGRESQL_PASSWORD}
       port: 5432
       type: sql_postgres
       user: ${env.POSTGRESQL_USER}
     sql_default:
-      db_path: /tmp/llama-stack/sql_store.db
+      db_path: /tmp/ogx/sql_store.db
       type: sql_sqlite
     kv_rag_UUID_os_product_docs:
       type: kv_sqlite
