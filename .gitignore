@@ -34,3 +34,8 @@ kuttl-report-openstack-lightspeed.xml
 
 # Vulnerability scan output
 vuln_output.json
+
+# Sphinx docs build artifacts
+/docs/_build
+/docs/.venv
+__pycache__/
