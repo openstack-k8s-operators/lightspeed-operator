@@ -63,14 +63,14 @@ jobs:
           operator-sdk: 1.38.0
 
       - name: Log in to Quay
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: redhat-actions/podman-login@50c2d9a331bb67c8fdab99b86455fad05e2e3252 # v2
         with:
           registry: quay.io
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
 
       - name: Log in to Red Hat Registry
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: redhat-actions/podman-login@50c2d9a331bb67c8fdab99b86455fad05e2e3252 # v2
         with:
           registry: registry.redhat.io
           username: ${{ secrets.REDHATIO_USERNAME }}
@@ -79,7 +79,7 @@ jobs:
       - name: Build operator image
         run: |
           make docker-build IMG=$OPERATOR_IMAGE
-          docker tag $OPERATOR_IMAGE $OPERATOR_IMAGE_LATEST
+          podman tag $OPERATOR_IMAGE $OPERATOR_IMAGE_LATEST
           make docker-push IMG=$OPERATOR_IMAGE
           make docker-push IMG=$OPERATOR_IMAGE_LATEST
 
@@ -87,13 +87,13 @@ jobs:
         run: |
           make bundle IMG=$OPERATOR_IMAGE USE_IMAGE_DIGESTS=true
           make bundle-build BUNDLE_IMG=$BUNDLE_IMAGE
-          docker tag $BUNDLE_IMAGE $BUNDLE_IMAGE_LATEST
+          podman tag $BUNDLE_IMAGE $BUNDLE_IMAGE_LATEST
           make bundle-push BUNDLE_IMG=$BUNDLE_IMAGE
           make bundle-push BUNDLE_IMG=$BUNDLE_IMAGE_LATEST
 
       - name: Build catalog image
         run: |
           make catalog-build CATALOG_IMG=$CATALOG_IMAGE BUNDLE_IMG=$BUNDLE_IMAGE
-          docker tag $CATALOG_IMAGE $CATALOG_IMAGE_LATEST
+          podman tag $CATALOG_IMAGE $CATALOG_IMAGE_LATEST
           make catalog-push CATALOG_IMG=$CATALOG_IMAGE
           make catalog-push CATALOG_IMG=$CATALOG_IMAGE_LATEST
