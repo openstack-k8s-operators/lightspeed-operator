@@ -1,0 +1,17 @@
+---
+- name: "Deploy OpenStack Lightspeed Operator"
+  hosts: "{{ cifmw_zuul_target_host | default('all') }}"
+  gather_facts: true
+  tasks:
+    - name: Filter out host if needed
+      when:
+        - cifmw_zuul_target_host is defined
+        - cifmw_zuul_target_host != 'all'
+        - inventory_hostname != cifmw_zuul_target_host
+      ansible.builtin.meta: end_host
+
+    - name: Run Lightspeed deployment hook
+      when:
+        - cifmw_run_hook_pre_test is defined
+      ansible.builtin.include_tasks:
+        file: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/lightspeed-operator/{{ cifmw_run_hook_pre_test }}"
