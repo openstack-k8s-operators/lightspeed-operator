@@ -1,0 +1,17 @@
+---
+# CI job for deploying OpenStack Lightspeed operator
+- job:
+    name: lightspeed-operator-deployment-crc
+    parent: cifmw-base-crc
+    attempts: 1
+    required-projects:
+      - openstack-k8s-operators/ci-framework
+      - openstack-k8s-operators/lightspeed-operator 
+    vars:
+      cifmw_run_hook_pre_test: install-openstack-lightspeed.yml
+
+      cifmw_openstack_lightspeed_llm_endpoint: "https://api.example.com/v1/chat/completions"
+      cifmw_openstack_lightspeed_model_name: "example-model"
+
+      #TODO: wire up zuul for secret and api token
+      # cifmw_openstack_lightspeed_api_token: "{{ modelscorp_api_token }}"
