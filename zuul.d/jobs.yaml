@@ -2,14 +2,11 @@
 # CI job for deploying OpenStack Lightspeed operator
 - job:
     name: lightspeed-operator-deployment-crc
-    parent: cifmw-base-crc
+    parent: cifmw-base-crc-openstack
     attempts: 1
     run: ci/playbooks/lightspeed/run.yml
     required-projects:
-      - openstack-k8s-operators/ci-framework
       - openstack-k8s-operators/lightspeed-operator
-    roles:
-      - zuul: github.com/openstack-k8s-operators/ci-framework
     vars:
       pre_test:
         - name: Deploy Lightspeed operator
