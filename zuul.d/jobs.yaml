@@ -5,6 +5,8 @@
     parent: cifmw-base-crc-openstack
     attempts: 1
     run: ci/playbooks/lightspeed/run.yml
+    dependencies:
+      - openstack-k8s-operators-content-provider
     required-projects:
       - openstack-k8s-operators/lightspeed-operator
     vars:
