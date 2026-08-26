@@ -10,8 +10,8 @@
         - inventory_hostname != cifmw_zuul_target_host
       ansible.builtin.meta: end_host
 
-    - name: Run Lightspeed deployment hook
-      when:
-        - cifmw_run_hook_pre_test is defined
-      ansible.builtin.include_tasks:
-        file: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/lightspeed-operator/{{ cifmw_run_hook_pre_test }}"
+    - name: Run pre_test hooks
+      vars:
+        step: pre_test
+      ansible.builtin.import_role:
+        name: run_hook

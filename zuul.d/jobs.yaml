@@ -7,9 +7,14 @@
     run: ci/playbooks/lightspeed/run.yml
     required-projects:
       - openstack-k8s-operators/ci-framework
-      - openstack-k8s-operators/lightspeed-operator 
+      - openstack-k8s-operators/lightspeed-operator
+    roles:
+      - zuul: github.com/openstack-k8s-operators/ci-framework
     vars:
-      cifmw_run_hook_pre_test: install-openstack-lightspeed.yml
+      pre_test:
+        - name: Deploy Lightspeed operator
+          type: playbook
+          source: install-openstack-lightspeed.yml
 
       cifmw_openstack_lightspeed_llm_endpoint: "https://api.example.com/v1/chat/completions"
       cifmw_openstack_lightspeed_model_name: "example-model"
