@@ -13,6 +13,8 @@
     ###
     # Make cifmw general plugins available when nested Ansible executed
     - name: Make a symlink to local .ansible collection dir
+      vars:
+        cifmw_helpers_project_dir: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/ci-framework"
       ansible.builtin.include_role:
         name: cifmw_helpers
         tasks_from: symlink_cifmw_collection.yml
