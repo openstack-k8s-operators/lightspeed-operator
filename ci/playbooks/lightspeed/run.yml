@@ -10,6 +10,13 @@
         - inventory_hostname != cifmw_zuul_target_host
       ansible.builtin.meta: end_host
 
+    ###
+    # Make cifmw general plugins available when nested Ansible executed
+    - name: Make a symlink to local .ansible collection dir
+      ansible.builtin.include_role:
+        name: cifmw_helpers
+        tasks_from: symlink_cifmw_collection.yml
+
     - name: Run pre_test hooks
       vars:
         step: pre_test
