@@ -18,12 +18,16 @@
         state: directory
         mode: '0755'
 
+    - name: Remove existing cifmw collection directory if present
+      ansible.builtin.file:
+        path: "{{ ansible_user_dir }}/.ansible/collections/ansible_collections/cifmw"
+        state: absent
+
     - name: Create symlink to cifmw collection
       ansible.builtin.file:
         src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/ci-framework/plugins"
         dest: "{{ ansible_user_dir }}/.ansible/collections/ansible_collections/cifmw"
         state: link
-        force: true
 
     - name: Run pre_test hooks
       vars:

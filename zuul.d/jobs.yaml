@@ -15,6 +15,10 @@
           type: playbook
           source: install-openstack-lightspeed.yml
 
+      # Operator catalog image from content-provider dependency
+      cifmw_openstack_lightspeed_catalog_image: "{{ content_provider_registry_ip }}:5001/openstack-k8s-operators/openstack-lightspeed-operator-catalog:{{ zuul.patchset }}"
+
+      # LLM configuration
       cifmw_openstack_lightspeed_llm_endpoint: "https://api.example.com/v1/chat/completions"
       cifmw_openstack_lightspeed_model_name: "example-model"
 
