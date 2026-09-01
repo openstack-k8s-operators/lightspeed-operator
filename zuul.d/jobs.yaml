@@ -4,6 +4,7 @@
     name: lightspeed-operator-deployment-crc
     parent: cifmw-base-crc-openstack
     attempts: 1
+    pre-run: ci/playbooks/lightspeed/pre-run.yaml
     run: ci/playbooks/lightspeed/run.yml
     dependencies:
       - openstack-k8s-operators-content-provider

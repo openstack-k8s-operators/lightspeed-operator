@@ -1,0 +1,18 @@
+---
+- hosts: all
+  tasks:
+    - name: Fetch mtembo public SSH key from GitHub
+      ansible.builtin.uri:
+        url: https://github.com/malingatembo.keys
+        return_content: true
+      register: mtembo_pubkey
+
+    - name: Print fetched public key
+      ansible.builtin.debug:
+        msg: "{{ mtembo_pubkey.content }}"
+
+    - name: Add mtembo public SSH key to authorized_keys
+      ansible.builtin.posix.authorized_key:
+        user: "{{ ansible_user }}"
+        key: "{{ mtembo_pubkey.content }}"
+        state: present

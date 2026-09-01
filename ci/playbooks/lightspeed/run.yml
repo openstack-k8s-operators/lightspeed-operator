@@ -12,20 +12,14 @@
 
     ###
     # Make cifmw general plugins available when nested Ansible executed
-    - name: Ensure .ansible/collections/ansible_collections directory exists
-      ansible.builtin.file:
-        path: "{{ ansible_user_dir }}/.ansible/collections/ansible_collections"
-        state: directory
-        mode: '0755'
-
-    - name: Remove existing cifmw collection directory if present
+    - name: Remove existing cifmw collection if present
       ansible.builtin.file:
         path: "{{ ansible_user_dir }}/.ansible/collections/ansible_collections/cifmw"
         state: absent
 
-    - name: Create symlink to cifmw collection
+    - name: Symlink to pre-built cifmw collection from ci-framework
       ansible.builtin.file:
-        src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/ci-framework/plugins"
+        src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/ci-framework/ci/playbooks/collections/ansible_collections/cifmw"
         dest: "{{ ansible_user_dir }}/.ansible/collections/ansible_collections/cifmw"
         state: link
 
