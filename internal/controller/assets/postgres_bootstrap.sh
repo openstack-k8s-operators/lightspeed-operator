@@ -1,10 +1,10 @@
 #!/bin/bash
-# This script prepares databases for lightspeed-stack and llama-stack (OGX) with
+# This script prepares databases for lightspeed-stack and OGX (old llama-stack) with
 # postgres_bootstrap.sql.
 #
 # Note:
 # - lightspeed-stack database: Auto-created by container image via POSTGRESQL_DATABASE.
-# - llama-stack database: Explicitly created by this script via POSTGRESQL_LLAMA_STACK_DATABASE.
+# - ogx database: Explicitly created by this script via POSTGRESQL_LLAMA_STACK_DATABASE.
 # - POSTGRESQL_ADMIN_PASSWORD is intentionally not set. The postgres superuser has no password
 #   by default, which restricts it to local connections only — a deliberate security improvement.
 #   Setting POSTGRESQL_ADMIN_PASSWORD would enable remote login for the postgres account.

@@ -297,7 +297,6 @@ func reconcileVectorDBScriptsConfigMap(ctx context.Context, h *common_helper.Hel
 		cm.Data = map[string]string{
 			VectorDBCollectScriptKey: vectorDatabaseCollectScript,
 			VectorDBBuildScriptKey:   vectorDatabaseBuildScript,
-			LlamaStartupWrapperKey:   llamaStartupWrapperScript,
 		}
 
 		return controllerutil.SetControllerReference(h.GetBeforeObject(), cm, h.GetScheme())

@@ -7,7 +7,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: llama-stack-config
+  name: ogx-config
   namespace: openstack-lightspeed
 ---
 apiVersion: v1

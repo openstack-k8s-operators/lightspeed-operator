@@ -62,7 +62,7 @@ const (
 	PostgresNetworkPolicyName                    = "lightspeed-postgres-server"
 	PostgresServicePort                          = int32(5432)
 	PostgresLightspeedStackDbName                = "lightspeed-stack"
-	PostgresLlamaStackDbName                     = "llamastack"
+	PostgresLlamaStackDbName                     = "ogx"
 	PostgresSharedBuffers                        = "256MB"
 	PostgresMaxConnections                       = 100
 	OpenStackLightspeedComponentPasswordFileName = "password"
@@ -81,8 +81,8 @@ const (
 	PostgresVarRunVolumeMountPath                = "/var/run/postgresql"
 
 	// PostgresSQLUsername is non-admin user that should be used by lightspeed-stack and
-	// llama-stack (OGX) to access the PostgreSQL database. This user gets created by the
-	// PostgreSQL container by setting the POSTGRESQL_USER and POSTGRESQL_PASSWORD environment
+	// (OGX) to access the PostgreSQL database. This user gets created by the PostgreSQL
+	// container by setting the POSTGRESQL_USER and POSTGRESQL_PASSWORD environment
 	// variable.
 	PostgresSQLUsername = "lightspeed-app-user"
 
@@ -113,7 +113,7 @@ const (
 	// -- LCore specific ---------------------------------------------------------
 
 	LlamaStackContainerPort  = int32(8321)
-	LlamaStackConfigCmName   = "llama-stack-config"
+	LlamaStackConfigCmName   = "ogx-config"
 	LCoreConfigCmName        = "lightspeed-stack-config"
 	LCoreDeploymentName      = "lightspeed-stack-deployment"
 	LCoreConfigMountPath     = "/app-root/lightspeed-stack.yaml"
@@ -122,7 +122,7 @@ const (
 
 	// ---------------------------------------------------------------------------
 
-	// -- Health probe settings for the llama-stack/OGX container. ---------------
+	// -- Health probe settings for the stack/OGX container. ---------------------
 
 	// The startup probe allows up to 30 failures (300s) for the slow initialization,
 	// while liveness and readiness probes use a tighter threshold of 3 failures.
@@ -314,10 +314,6 @@ const (
 	// script is stored in the ConfigMap containing vector database init scripts.
 	VectorDBBuildScriptKey = "vector_database_build.py"
 
-	// LlamaStartupWrapperKey is the ConfigMap key for the startup wrapper script
-	// that monkey-patches the asyncpg event loop bug fix. Remove with PR #5837 backport.
-	LlamaStartupWrapperKey = "llama_startup_wrapper.py" // #nosec G101 -- ConfigMap key, not a credential
-
 	// -- Resource Version Annotation --------------------------------------------
 
 	// These constants define annotation keys used to track the resource versions of specific ConfigMaps.
@@ -448,13 +444,6 @@ var vectorDatabaseCollectScript string
 //
 //go:embed assets/vector_database_build.py
 var vectorDatabaseBuildScript string
-
-// llamaStartupWrapperScript is a Python monkey-patch that fixes the asyncpg
-// event loop bug (ogx-ai/ogx#5978) by resetting SQL engines after StackApp
-// initialization. Remove when the container image includes upstream PR #5837.
-//
-//go:embed assets/llama_startup_wrapper.py
-var llamaStartupWrapperScript string
 
 //go:embed assets/console_nginx.conf.tmpl
 var consoleNginxConfigTemplate string

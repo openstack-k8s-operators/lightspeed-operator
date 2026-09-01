@@ -327,8 +327,9 @@ func buildLCoreConfigYAML(ctx context.Context, h *common_helper.Helper, instance
 
 	// Build the complete config as a map
 	config := map[string]interface{}{
-		"name":                 "Lightspeed Core Service (LCS)",
-		"service":              buildLCoreServiceConfig(h, instance),
+		"name":    "Lightspeed Core Service (LCS)",
+		"service": buildLCoreServiceConfig(h, instance),
+		// This has not been renamed in the LCORE config to "ogx"
 		"llama_stack":          buildLCoreLlamaStackConfig(),
 		"user_data_collection": buildLCoreUserDataCollectionConfig(h, instance),
 		"authentication":       buildLCoreAuthenticationConfig(h, instance),

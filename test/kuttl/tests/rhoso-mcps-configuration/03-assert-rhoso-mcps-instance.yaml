@@ -13,7 +13,7 @@ spec:
   template:
     spec:
       containers:
-        - name: llama-stack
+        - name: ogx
         - name: lightspeed-service-api
         - name: lightspeed-to-dataverse-exporter
         - name: rhoso-mcps

@@ -55,7 +55,7 @@ func buildLCorePodTemplateSpec(ctx context.Context, h *common_helper.Helper, ins
 	// Build env vars
 	llamaEnvVars, err := buildLlamaStackEnvVars(ctx, h, instance)
 	if err != nil {
-		return corev1.PodTemplateSpec{}, fmt.Errorf("failed to build llama-stack env vars: %w", err)
+		return corev1.PodTemplateSpec{}, fmt.Errorf("failed to build ogx env vars: %w", err)
 	}
 	lsEnvVars := buildLightspeedStackEnvVars(instance)
 
@@ -63,17 +63,12 @@ func buildLCorePodTemplateSpec(ctx context.Context, h *common_helper.Helper, ins
 	llamaStackMounts := []corev1.VolumeMount{}
 	llamaStackMounts = append(llamaStackMounts, sharedMounts...)
 	llamaStackMounts = append(llamaStackMounts, llamaCacheMounts...)
-	llamaStackMounts = append(llamaStackMounts, corev1.VolumeMount{
-		Name:      VectorDBScriptsVolumeName,
-		MountPath: VectorDBScriptsMountPath,
-		ReadOnly:  true,
-	})
 
 	llamaStackContainer := corev1.Container{
-		Name:         "llama-stack",
+		Name:         "ogx",
 		Image:        apiv1beta1.OpenStackLightspeedDefaultValues.LCoreImageURL,
-		Command:      []string{"python3", VectorDBScriptsMountPath + "/" + LlamaStartupWrapperKey, "stack", "run", VectorDBVolumeOGXConfigPath},
-		Ports:        []corev1.ContainerPort{{Name: "llama-stack", ContainerPort: LlamaStackContainerPort}},
+		Command:      []string{"ogx", "run", VectorDBVolumeOGXConfigPath},
+		Ports:        []corev1.ContainerPort{{Name: "ogx", ContainerPort: LlamaStackContainerPort}},
 		VolumeMounts: llamaStackMounts,
 		Env:          llamaEnvVars,
 		StartupProbe: &corev1.Probe{
@@ -413,17 +408,17 @@ func addTLSVolumesAndMounts(volumes *[]corev1.Volume, mounts *[]corev1.VolumeMou
 	})
 }
 
-// addLlamaCacheVolumesAndMounts adds an emptydir volume for llama-stack cache.
+// addLlamaCacheVolumesAndMounts adds an emptydir volume for ogx cache.
 func addLlamaCacheVolumesAndMounts(volumes *[]corev1.Volume, mounts *[]corev1.VolumeMount) {
 	*volumes = append(*volumes, corev1.Volume{
-		Name: "llama-cache",
+		Name: "ogx-cache",
 		VolumeSource: corev1.VolumeSource{
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	})
 	*mounts = append(*mounts, corev1.VolumeMount{
-		Name:      "llama-cache",
-		MountPath: "/tmp/llama-stack",
+		Name:      "ogx-cache",
+		MountPath: "/tmp/ogx",
 	})
 }
 
@@ -526,7 +521,7 @@ func addCABundleVolumesAndMounts(volumes *[]corev1.Volume, mounts *[]corev1.Volu
 	})
 }
 
-// buildLlamaStackEnvVars builds environment variables for llama-stack,
+// buildLlamaStackEnvVars builds environment variables for ogx
 // primarily provider API keys read from Kubernetes secrets.
 func buildLlamaStackEnvVars(ctx context.Context, h *common_helper.Helper, instance *apiv1beta1.OpenStackLightspeed) ([]corev1.EnvVar, error) {
 	envVars := []corev1.EnvVar{}
@@ -628,7 +623,7 @@ func buildLlamaStackEnvVars(ctx context.Context, h *common_helper.Helper, instan
 	}
 
 	// Postgres credentials for ${env.POSTGRESQL_PASSWORD} and ${env.POSTGRESQL_USER}
-	// substitution in llama-stack config
+	// substitution in ogx config
 	envVars = append(envVars, buildPostgresCredsEnvVars()...)
 
 	// PostgreSQL SSL configuration for OGX (llama-stack).
@@ -644,12 +639,8 @@ func buildLlamaStackEnvVars(ctx context.Context, h *common_helper.Helper, instan
 		Value: CABundleMountPath,
 	})
 
-	// Logging configuration - set both for compatibility with llama-stack and OGX
+	// Logging configuration - only for OGX, incompatible with llama-stack
 	ogxLogLevel := getOGXLogLevel(instance)
-	envVars = append(envVars, corev1.EnvVar{
-		Name:  "LLAMA_STACK_LOGGING",
-		Value: ogxLogLevel,
-	})
 	envVars = append(envVars, corev1.EnvVar{
 		Name:  "OGX_LOGGING",
 		Value: ogxLogLevel,
@@ -708,6 +699,10 @@ func buildLightspeedStackEnvVars(instance *apiv1beta1.OpenStackLightspeed) []cor
 	envVars = append(envVars, corev1.EnvVar{
 		Name:  "RH_SERVER_OKP",
 		Value: fmt.Sprintf("http://%s.%s.svc:%d", OKPServiceName, instance.GetNamespace(), OKPServicePort),
+	})
+	envVars = append(envVars, corev1.EnvVar{
+		Name:  "OTEL_SDK_DISABLED",
+		Value: "true",
 	})
 	envVars = append(envVars, buildPostgresCredsEnvVars()...)
 
@@ -777,7 +772,7 @@ func buildLightspeedStackReadinessProbe() *corev1.Probe {
 	}
 }
 
-// getOGXLogLevel returns the log level for OGX/llama-stack container.
+// getOGXLogLevel returns the log level for OGX container.
 // Supports either standard levels (INFO, DEBUG, WARNING, ERROR, CRITICAL) or fine-grained control.
 // Examples: "INFO" -> "all=info", "DEBUG" -> "all=debug", "core=debug,providers=info" -> "core=debug,providers=info"
 // Defaults to "all=info" if not specified.
