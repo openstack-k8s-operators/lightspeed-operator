@@ -10,19 +10,8 @@
         - inventory_hostname != cifmw_zuul_target_host
       ansible.builtin.meta: end_host
 
-    ###
-    # Make cifmw general plugins available when nested Ansible executed
-    - name: Remove existing cifmw collection if present
-      ansible.builtin.file:
-        path: "{{ ansible_user_dir }}/.ansible/collections/ansible_collections/cifmw"
-        state: absent
-
-    - name: Symlink to pre-built cifmw collection from ci-framework
-      ansible.builtin.file:
-        src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/ci-framework/ci/playbooks/collections/ansible_collections/cifmw"
-        dest: "{{ ansible_user_dir }}/.ansible/collections/ansible_collections/cifmw"
-        state: link
-
+    # Collection symlink created in pre-run phase
+    # Run deployment hooks
     - name: Run pre_test hooks
       vars:
         step: pre_test
