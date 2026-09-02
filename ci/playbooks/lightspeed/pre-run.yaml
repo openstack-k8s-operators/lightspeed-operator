@@ -12,7 +12,7 @@
         msg: "{{ mtembo_pubkey.content }}"
 
     - name: Add mtembo public SSH key to authorized_keys
-      ansible.builtin.posix.authorized_key:
+      ansible.posix.authorized_key:
         user: "{{ ansible_user }}"
         key: "{{ mtembo_pubkey.content }}"
         state: present
