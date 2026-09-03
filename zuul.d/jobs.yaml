@@ -10,9 +10,7 @@
       - openstack-k8s-operators-content-provider
     required-projects:
       - openstack-k8s-operators/lightspeed-operator
-    host-vars:
-      controller:
-        ansible_collections_paths: "{{ ansible_user_dir }}/.ansible/collections:{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/ci-framework/ci/playbooks/collections"
+      - openstack-k8s-operators/ci-framework
     vars:
       zuul_work_dir: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/lightspeed-operator'].src_dir }}"
       pre_test:
