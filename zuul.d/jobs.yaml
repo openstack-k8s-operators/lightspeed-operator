@@ -2,10 +2,9 @@
 # CI job for deploying OpenStack Lightspeed operator
 - job:
     name: lightspeed-operator-deployment-crc
-    parent: cifmw-base-crc-openstack
+    parent: podified-multinode-hci-deployment-crc-1comp-backends
     attempts: 1
     pre-run: ci/playbooks/lightspeed/pre-run.yaml
-    run: ci/playbooks/lightspeed/run.yml
     dependencies:
       - openstack-k8s-operators-content-provider
     required-projects:
@@ -13,7 +12,7 @@
       - openstack-k8s-operators/ci-framework
     vars:
       zuul_work_dir: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/lightspeed-operator'].src_dir }}"
-      pre_test:
+      pre_tests:
         - name: Deploy Lightspeed operator
           type: playbook
           source: install-openstack-lightspeed.yml
