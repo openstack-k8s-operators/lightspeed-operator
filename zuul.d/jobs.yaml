@@ -24,5 +24,5 @@
       cifmw_openstack_lightspeed_llm_endpoint: "https://api.example.com/v1/chat/completions"
       cifmw_openstack_lightspeed_model_name: "example-model"
 
-      #TODO: wire up zuul for secret and api token
-      # cifmw_openstack_lightspeed_api_token: "{{ modelscorp_api_token }}"
+      # Mock token for CI deployment testing (operator installs but service won't be functional)
+      cifmw_openstack_lightspeed_api_token: "dummy-token-for-ci"
