@@ -291,6 +291,7 @@ func (r *OpenStackLightspeedReconciler) reconcileStatus(
 	Log := r.GetLogger(ctx)
 	deployments := []string{
 		PostgresDeploymentName,
+		OKPDeploymentName,
 		LCoreDeploymentName,
 		ConsoleUIDeploymentName,
 	}
