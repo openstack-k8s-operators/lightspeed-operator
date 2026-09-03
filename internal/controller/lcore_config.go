@@ -133,6 +133,7 @@ func buildLCoreInferenceConfig(_ *common_helper.Helper, instance *apiv1beta1.Ope
 // buildLCoreDatabaseConfig configures persistent database storage (PostgreSQL)
 func buildLCoreDatabaseConfig(h *common_helper.Helper, _ *apiv1beta1.OpenStackLightspeed) map[string]interface{} {
 	return map[string]interface{}{
+		// #nosec G101 -- values are env-var substitution placeholders, not hardcoded credentials
 		"postgres": map[string]interface{}{
 			"host":         PostgresServiceName + "." + h.GetBeforeObject().GetNamespace() + ".svc",
 			"port":         PostgresServicePort,
@@ -165,6 +166,7 @@ func buildLCoreCustomizationConfig() map[string]interface{} {
 func buildLCoreConversationCacheConfig(h *common_helper.Helper, _ *apiv1beta1.OpenStackLightspeed) map[string]interface{} {
 	return map[string]interface{}{
 		"type": "postgres",
+		// #nosec G101 -- values are env-var substitution placeholders, not hardcoded credentials
 		"postgres": map[string]interface{}{
 			"host":         PostgresServiceName + "." + h.GetBeforeObject().GetNamespace() + ".svc",
 			"port":         PostgresServicePort,
@@ -216,8 +218,8 @@ func buildLCoreQuotaHandlersConfig(h *common_helper.Helper, instance *apiv1beta1
 			"host":         PostgresServiceName + "." + h.GetBeforeObject().GetNamespace() + ".svc",
 			"port":         PostgresServicePort,
 			"db":           PostgresLightspeedStackDbName,
-			"user":         "${env.POSTGRESQL_USER}",
-			"password":     "${env.POSTGRESQL_PASSWORD}",
+			"user":         "${env.POSTGRESQL_USER}",     // #nosec G101 - This is only a placeholder.
+			"password":     "${env.POSTGRESQL_PASSWORD}", // #nosec G101 - This is only a placeholder.
 			"ssl_mode":     PostgresDefaultSSLMode,
 			"gss_encmode":  "disable",
 			"ca_cert_path": CABundleMountPath,

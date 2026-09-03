@@ -157,29 +157,29 @@ func generateOKPSelectorLabels() map[string]string {
 // parseDevConfig unmarshals the Dev RawExtension into a DevSpec.
 // Returns a zero-value DevSpec and an error on malformed input.
 func parseDevConfig(instance *apiv1beta1.OpenStackLightspeed) (apiv1beta1.DevSpec, error) {
-	var config apiv1beta1.DevSpec
+	var devConfig apiv1beta1.DevSpec
 	if len(instance.Spec.Dev.Raw) > 0 {
-		if err := json.Unmarshal(instance.Spec.Dev.Raw, &config); err != nil {
-			return config, err
+		if err := json.Unmarshal(instance.Spec.Dev.Raw, &devConfig); err != nil {
+			return devConfig, err
 		}
 	}
-	return config, nil
+	return devConfig, nil
 }
 
 // isRHOSOMCPEnabled returns true if the "rhoso_mcps" feature flag is present in the dev config.
 func isRHOSOMCPEnabled(instance *apiv1beta1.OpenStackLightspeed) (bool, error) {
-	config, err := parseDevConfig(instance)
+	devConfig, err := parseDevConfig(instance)
 	if err != nil {
 		return false, err
 	}
-	return slices.Contains(config.FeatureFlags, "rhoso_mcps"), nil
+	return slices.Contains(devConfig.FeatureFlags, "rhoso_mcps"), nil
 }
 
 // getOKPChunkFilterQuery returns the chunk filter query from the dev config, or a version-aware default.
 func getOKPChunkFilterQuery(ctx context.Context, h *common_helper.Helper, instance *apiv1beta1.OpenStackLightspeed) string {
-	config, _ := parseDevConfig(instance)
-	if config.OKPChunkFilterQuery != "" {
-		return config.OKPChunkFilterQuery
+	devConfig, _ := parseDevConfig(instance)
+	if devConfig.OKPChunkFilterQuery != "" {
+		return devConfig.OKPChunkFilterQuery
 	}
 
 	logger := h.GetLogger()
