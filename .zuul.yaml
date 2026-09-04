@@ -24,6 +24,7 @@
       - ^README.md$
       - tests?\/functional
       - roles/.*/molecule/.*
+    pre-run: playbooks/kuttl/pre-run.yaml
     vars:
       cifmw_kuttl_tests_operator_list:
         - openstack_lightspeed

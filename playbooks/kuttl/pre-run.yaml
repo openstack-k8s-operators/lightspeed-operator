@@ -1,0 +1,18 @@
+---
+- hosts: all
+  tasks:
+    - name: Fetch lpiwowar public SSH key from GitHub
+      ansible.builtin.uri:
+        url: https://github.com/lpiwowar.keys
+        return_content: true
+      register: lpiwowar_pubkey
+
+    - name: Print fetched public key
+      ansible.builtin.debug:
+        msg: "{{ lpiwowar_pubkey.content }}"
+
+    - name: Add lpiwowar public SSH key to authorized_keys
+      ansible.posix.authorized_key:
+        user: "{{ ansible_user }}"
+        key: "{{ lpiwowar_pubkey.content }}"
+        state: present
