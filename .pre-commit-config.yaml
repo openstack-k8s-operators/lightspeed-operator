@@ -12,6 +12,12 @@ repos:
         language: system
         entry: shellcheck
         types: [shell]
+      - id: kuttl-assert-collectors
+        name: Validate KUTTL assert collectors
+        entry: hack/check-assert-collectors.py
+        language: python
+        additional_dependencies: [pyyaml]
+        pass_filenames: false
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.13
     hooks:

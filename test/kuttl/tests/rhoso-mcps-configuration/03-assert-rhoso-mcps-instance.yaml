@@ -69,3 +69,9 @@ status:
       status: "True"
       reason: Ready
       message: OpenStack Lightspeed created
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+collectors:
+  - type: command
+    command: ../../common/collectors/collect-workload-diagnostics.sh

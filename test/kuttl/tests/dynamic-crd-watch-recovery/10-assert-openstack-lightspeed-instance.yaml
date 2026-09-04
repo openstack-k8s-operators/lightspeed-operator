@@ -9,6 +9,9 @@ status:
 ---
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
+collectors:
+  - type: command
+    command: ../../common/collectors/collect-workload-diagnostics.sh
 timeout: 360
 # Script: kuttl YAML asserts match resource structure, not string content within data fields
 commands:

@@ -1,6 +1,9 @@
 ---
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
+collectors:
+  - type: command
+    command: ../../common/collectors/collect-workload-diagnostics.sh
 timeout: 360
 # Script: Go omitempty on bool omits false from serialization, kuttl YAML assert fails with
 # "key is missing from map"; also parses MCP config string content within data fields

@@ -278,6 +278,9 @@ GOLANGCI_LINT_VERSION ?= v2.12.2
 KUTTL_VERSION ?= 0.22.0
 GOVULNCHECK_VERSION ?= v1.6.0
 
+## When set to `file`, KUTTL writes collector output to `./kuttl-collectors-output.log`; otherwise, it writes it to stdout while running KUTTL tests.
+KUTTL_COLLECTOR_OUTPUT ?= file
+
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
@@ -308,7 +311,7 @@ $(KUTTL): $(LOCALBIN)
 kuttl-test: kuttl ## Run kuttl tests
 	@command -v diff >/dev/null 2>&1 || { echo "ERROR: 'diff' command is required for KUTTL tests but not found in PATH" >&2; exit 1; }
 	@command -v oc >/dev/null 2>&1 || { echo "ERROR: 'oc' command is required for KUTTL tests but not found in PATH" >&2; exit 1; }
-	$(LOCALBIN)/kubectl-kuttl test --config kuttl-test.yaml test/kuttl/tests $(KUTTL_ARGS)
+	KUTTL_COLLECTOR_OUTPUT=$(KUTTL_COLLECTOR_OUTPUT) $(LOCALBIN)/kubectl-kuttl test --config kuttl-test.yaml test/kuttl/tests $(KUTTL_ARGS)
 
 .PHONY: govulncheck-install
 govulncheck-install: $(LOCALBIN) ## Download govulncheck locally if necessary.

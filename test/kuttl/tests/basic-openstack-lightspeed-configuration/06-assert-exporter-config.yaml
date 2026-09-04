@@ -15,3 +15,9 @@ data:
     collection_interval: 300
     cleanup_after_send: true
     ingress_connection_timeout: 30
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+collectors:
+  - type: command
+    command: ../../common/collectors/collect-workload-diagnostics.sh

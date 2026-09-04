@@ -1,10 +1,12 @@
 ---
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
+collectors:
+  - type: command
+    command: ../../common/collectors/collect-workload-diagnostics.sh
 commands:
   - script: |
       #!/bin/bash
       set -euo pipefail
       ../../common/expected-configs/validate-config.sh lightspeed-stack ../../common/expected-configs/lightspeed-stack.yaml
     timeout: 180
-

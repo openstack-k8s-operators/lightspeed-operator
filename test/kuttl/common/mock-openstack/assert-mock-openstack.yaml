@@ -39,3 +39,9 @@ kind: OpenStackControlPlane
 metadata:
   name: openstack-galera-network-isolation
   namespace: openstack
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+collectors:
+  - type: command
+    command: ../../common/collectors/collect-workload-diagnostics.sh
