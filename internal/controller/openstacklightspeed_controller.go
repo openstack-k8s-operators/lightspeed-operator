@@ -291,12 +291,25 @@ func (r *OpenStackLightspeedReconciler) reconcileStatus(
 	Log := r.GetLogger(ctx)
 	deployments := []string{
 		PostgresDeploymentName,
+		OKPDeploymentName,
 		LCoreDeploymentName,
 		ConsoleUIDeploymentName,
 	}
 	for _, deploymentName := range deployments {
 		deployment, err := getDeployment(ctx, helper, deploymentName, instance.Namespace)
 		if err != nil {
+			if k8s_errors.IsNotFound(err) {
+				// Deployment not created yet, e.g. LCore waiting on its
+				// Postgres/OKP dependencies. Treat the same as not-ready.
+				instance.Status.Conditions.Set(condition.FalseCondition(
+					apiv1beta1.OpenStackLightspeedReadyCondition,
+					condition.RequestedReason,
+					condition.SeverityInfo,
+					apiv1beta1.DeploymentsNotReadyMessage,
+					deploymentName,
+				))
+				return ctrl.Result{RequeueAfter: ResourceCreationTimeout}, nil
+			}
 			Log.Error(err, "failed to get deployment", "deployment", deploymentName)
 			instance.Status.Conditions.Set(condition.FalseCondition(
 				apiv1beta1.OpenStackLightspeedReadyCondition,
