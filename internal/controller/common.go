@@ -201,7 +201,7 @@ func getDeployment(ctx context.Context, h *common_helper.Helper, name string, na
 	err := h.GetClient().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, deployment)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
-			return &appsv1.Deployment{}, errors.New("deployment not found")
+			return &appsv1.Deployment{}, fmt.Errorf("deployment %s not found: %w", name, err)
 		}
 		return &appsv1.Deployment{}, fmt.Errorf("failed to get deployment %s: %w", name, err)
 	}
