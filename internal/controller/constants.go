@@ -181,7 +181,7 @@ const (
 	OKPAccessKeySecretKey  = "access_key"
 	OKPDefaultOCPVersion   = "4.21"
 	OKPDefaultRHOSOVersion = "18.0"
-	OKPChunkFilterQueryFmt = "((product:*openstack* AND product_version:%s) OR (product:*openshift* AND product_version:%s))"
+	OKPChunkFilterQueryFmt = "((product:*openstack* AND product_version:%s) OR (product:*openshift* AND -parent_id:*html-single/virtualization/* AND product_version:%s))"
 	ExternalProvidersDir   = "/app-root/providers.d"
 
 	// ---------------------------------------------------------------------------

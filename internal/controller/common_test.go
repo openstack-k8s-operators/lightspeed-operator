@@ -17,8 +17,32 @@ limitations under the License.
 package controller
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 )
+
+// TestOKPChunkFilterQueryFmtExcludesOpenShiftVirtualization guards against OKP RAG
+// answers being grounded in OpenShift Virtualization docs when the query is about
+// OpenStack. OpenShift Virtualization docs share the same "openshift_container_platform"
+// product as docs we want to keep (e.g. Migration Toolkit for Containers), so they can
+// only be distinguished by their parent_id path (".../html-single/virtualization/index").
+func TestOKPChunkFilterQueryFmtExcludesOpenShiftVirtualization(t *testing.T) {
+	query := fmt.Sprintf(OKPChunkFilterQueryFmt, "18.0", "4.21")
+
+	if !strings.Contains(query, "product:*openstack* AND product_version:18.0") {
+		t.Errorf("expected OpenStack clause with version 18.0, got: %s", query)
+	}
+	if !strings.Contains(query, "product:*openshift*") {
+		t.Errorf("expected OpenShift clause, got: %s", query)
+	}
+	if !strings.Contains(query, "product_version:4.21") {
+		t.Errorf("expected OpenShift clause with version 4.21, got: %s", query)
+	}
+	if !strings.Contains(query, "-parent_id:*html-single/virtualization/*") {
+		t.Errorf("expected OpenShift Virtualization docs to be excluded via parent_id, got: %s", query)
+	}
+}
 
 func TestGenerateRandomStringLength(t *testing.T) {
 	t.Run("Below minimum length returns error", func(t *testing.T) {
