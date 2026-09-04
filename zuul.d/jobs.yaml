@@ -1,0 +1,28 @@
+---
+# CI job for deploying OpenStack Lightspeed operator
+- job:
+    name: lightspeed-operator-deployment-crc
+    parent: podified-multinode-hci-deployment-crc-1comp-backends
+    attempts: 1
+    pre-run: ci/playbooks/lightspeed/pre-run.yaml
+    dependencies:
+      - openstack-k8s-operators-content-provider
+    required-projects:
+      - openstack-k8s-operators/lightspeed-operator
+      - openstack-k8s-operators/ci-framework
+    vars:
+      zuul_work_dir: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/lightspeed-operator'].src_dir }}"
+      pre_tests:
+        - name: Deploy Lightspeed operator
+          type: playbook
+          source: install-openstack-lightspeed.yml
+
+      # Operator catalog image from content-provider dependency
+      cifmw_openstack_lightspeed_catalog_image: "{{ content_provider_registry_ip }}:5001/openstack-k8s-operators/lightspeed-operator-index:{{ zuul.patchset }}"
+
+      # LLM configuration
+      cifmw_openstack_lightspeed_llm_endpoint: "https://api.example.com/v1/chat/completions"
+      cifmw_openstack_lightspeed_model_name: "example-model"
+
+      # Mock token for CI deployment testing (operator installs but service won't be functional)
+      cifmw_openstack_lightspeed_api_token: "dummy-token-for-ci"

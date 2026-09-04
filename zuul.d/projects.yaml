@@ -1,0 +1,8 @@
+---
+- project:
+    name: openstack-k8s-operators/lightspeed-operator
+    default-branch: main
+    github-check:
+      jobs:
+        - openstack-k8s-operators-content-provider
+        - lightspeed-operator-deployment-crc
