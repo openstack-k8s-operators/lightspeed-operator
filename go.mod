@@ -6,10 +6,10 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/go-logr/logr v1.4.4
 	github.com/onsi/ginkgo/v2 v2.32.1
-	github.com/onsi/gomega v1.42.1
+	github.com/onsi/gomega v1.43.0
 	github.com/openshift/api v3.9.0+incompatible // from lib-common
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260824142420-113dc64ecfd4
-	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.1-0.20260824142420-113dc64ecfd4
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260905094227-bddb5880512c
+	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.1-0.20260905094227-bddb5880512c
 	github.com/operator-framework/api v0.33.0
 	k8s.io/api v0.33.13
 	k8s.io/apiextensions-apiserver v0.33.13
