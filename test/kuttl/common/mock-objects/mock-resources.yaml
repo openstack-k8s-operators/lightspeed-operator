@@ -99,6 +99,8 @@ data:
     from fastapi.responses import JSONResponse
 
     app = FastAPI()
+
+
     @app.post("/v1/chat/completions")
     async def completions_post(request: Request):
         try:

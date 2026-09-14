@@ -65,10 +65,6 @@ spec:
             limits:
               cpu: 500m
               memory: 2Gi
-status:
-  replicas: 1
-  readyReplicas: 1
-  availableReplicas: 1
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -86,6 +82,10 @@ metadata:
 spec:
   template:
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: okp
           resources:
@@ -98,10 +98,11 @@ spec:
           ports:
             - name: okp
               containerPort: 8080
-status:
-  replicas: 1
-  readyReplicas: 1
-  availableReplicas: 1
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
 
 # OKP Service
 ---
@@ -220,9 +221,25 @@ metadata:
 spec:
   template:
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
         - name: vector-database-collect
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
         - name: vector-database-config-build
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
       containers:
         - name: ogx
           resources:
@@ -267,6 +284,8 @@ spec:
               mountPath: /vector-db-discovered-values
             - name: ogx-cache
               mountPath: /tmp/ogx
+            - name: tmp-writable-volume
+              mountPath: /tmp
         - name: lightspeed-service-api
           resources:
             requests:
@@ -303,6 +322,8 @@ spec:
               readOnly: true
             - name: vector-db-discovered-values
               mountPath: /vector-db-discovered-values
+            - name: tmp-writable-volume
+              mountPath: /tmp
             - name: tls-certs
               mountPath: /etc/certs/lightspeed-tls
               readOnly: true
@@ -328,6 +349,8 @@ spec:
               mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
               subPath: tls-ca-bundle.pem
               readOnly: true
+            - name: tmp-writable-volume
+              mountPath: /tmp
       volumes:
         - name: ogx-config
           configMap:
@@ -350,13 +373,11 @@ spec:
         - name: exporter-config
           configMap:
             name: lightspeed-exporter-config
+        - name: tmp-writable-volume
+          emptyDir: {}
         - name: tls-certs
           secret:
             secretName: lightspeed-tls
-status:
-  replicas: 1
-  readyReplicas: 1
-  availableReplicas: 1
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -408,6 +429,7 @@ spec:
         - name: rewrite-locales
           securityContext:
             allowPrivilegeEscalation: false
+            runAsNonRoot: true
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]

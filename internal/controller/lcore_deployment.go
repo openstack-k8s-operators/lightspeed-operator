@@ -63,6 +63,19 @@ func buildLCorePodTemplateSpec(ctx context.Context, h *common_helper.Helper, ins
 	ogxMounts := []corev1.VolumeMount{}
 	ogxMounts = append(ogxMounts, sharedMounts...)
 	ogxMounts = append(ogxMounts, ogxCacheMounts...)
+	ogxMounts = append(ogxMounts, corev1.VolumeMount{
+		Name:      TmpVolumeName,
+		MountPath: TmpVolumeMountPath,
+	})
+
+	readonlyContainerSecurityContext := &corev1.SecurityContext{
+		RunAsNonRoot:             toPtr(true),
+		AllowPrivilegeEscalation: toPtr(false),
+		ReadOnlyRootFilesystem:   toPtr(true),
+		Capabilities: &corev1.Capabilities{
+			Drop: []corev1.Capability{"ALL"},
+		},
+	}
 
 	ogxResources := corev1.ResourceRequirements{}
 	if instance.Spec.OGX != nil {
@@ -111,6 +124,7 @@ func buildLCorePodTemplateSpec(ctx context.Context, h *common_helper.Helper, ins
 		},
 		Resources:       ogxResources,
 		ImagePullPolicy: corev1.PullIfNotPresent,
+		SecurityContext: readonlyContainerSecurityContext,
 	}
 
 	// Data collection volumes (shared folder + exporter config)
@@ -119,9 +133,21 @@ func buildLCorePodTemplateSpec(ctx context.Context, h *common_helper.Helper, ins
 		addDataCollectorVolumes(&volumes, VolumeDefaultMode)
 	}
 
+	// Writable tmp for read-only root filesystem containers
+	volumes = append(volumes, corev1.Volume{
+		Name: TmpVolumeName,
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		},
+	})
+
 	// Lightspeed Stack container mounts: its config + shared + TLS (only API container needs TLS)
 	lightspeedStackMounts := []corev1.VolumeMount{}
 	lightspeedStackMounts = append(lightspeedStackMounts, sharedMounts...)
+	lightspeedStackMounts = append(lightspeedStackMounts, corev1.VolumeMount{
+		Name:      TmpVolumeName,
+		MountPath: TmpVolumeMountPath,
+	})
 
 	tlsMounts := []corev1.VolumeMount{}
 	addTLSVolumesAndMounts(&volumes, &tlsMounts, VolumeDefaultMode)
@@ -152,6 +178,7 @@ func buildLCorePodTemplateSpec(ctx context.Context, h *common_helper.Helper, ins
 		ReadinessProbe:  buildLightspeedStackReadinessProbe(),
 		Resources:       lightspeedResources,
 		ImagePullPolicy: corev1.PullIfNotPresent,
+		SecurityContext: readonlyContainerSecurityContext,
 	}
 	containers := []corev1.Container{ogxContainer, lightspeedStackContainer}
 
@@ -183,6 +210,10 @@ func buildLCorePodTemplateSpec(ctx context.Context, h *common_helper.Helper, ins
 					SubPath:   CABundleKey,
 					ReadOnly:  true,
 				},
+				{
+					Name:      TmpVolumeName,
+					MountPath: TmpVolumeMountPath,
+				},
 			},
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
@@ -193,6 +224,7 @@ func buildLCorePodTemplateSpec(ctx context.Context, h *common_helper.Helper, ins
 					corev1.ResourceMemory: resource.MustParse("200Mi"),
 				},
 			},
+			SecurityContext: readonlyContainerSecurityContext,
 		}
 		containers = append(containers, exporterContainer)
 	}
@@ -234,6 +266,15 @@ func buildLCorePodTemplateSpec(ctx context.Context, h *common_helper.Helper, ins
 				FailureThreshold: MCPServerProbeFailureThreshold,
 			},
 			ImagePullPolicy: corev1.PullIfNotPresent,
+			// NOTE: readOnlyRootFilesystem is intentionally not set for MCP.
+			// This sidecar is a dev feature and may require mutable runtime paths.
+			SecurityContext: &corev1.SecurityContext{
+				RunAsNonRoot:             toPtr(true),
+				AllowPrivilegeEscalation: toPtr(false),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{"ALL"},
+				},
+			},
 		}
 		containers = append(containers, mcpContainer)
 	}
@@ -262,6 +303,12 @@ func buildLCorePodTemplateSpec(ctx context.Context, h *common_helper.Helper, ins
 			Annotations: annotations,
 		},
 		Spec: corev1.PodSpec{
+			SecurityContext: &corev1.PodSecurityContext{
+				RunAsNonRoot: toPtr(true),
+				SeccompProfile: &corev1.SeccompProfile{
+					Type: corev1.SeccompProfileTypeRuntimeDefault,
+				},
+			},
 			ServiceAccountName: OpenStackLightspeedAppServerServiceAccountName,
 			InitContainers:     initContainers,
 			Containers:         containers,
@@ -278,8 +325,9 @@ func buildLCorePodTemplateSpec(ctx context.Context, h *common_helper.Helper, ins
 // (1) assets/vector_database_collect.sh and (2) assets/vector_database_build.py.
 func buildInitContainers(instance *apiv1beta1.OpenStackLightspeed, initResources corev1.ResourceRequirements) []corev1.Container {
 	securityContext := &corev1.SecurityContext{
-		RunAsNonRoot:             &[]bool{true}[0],
-		AllowPrivilegeEscalation: &[]bool{false}[0],
+		RunAsNonRoot:             toPtr(true),
+		AllowPrivilegeEscalation: toPtr(false),
+		ReadOnlyRootFilesystem:   toPtr(true),
 		Capabilities: &corev1.Capabilities{
 			Drop: []corev1.Capability{"ALL"},
 		},
@@ -305,6 +353,10 @@ func buildInitContainers(instance *apiv1beta1.OpenStackLightspeed, initResources
 				Name:      VectorDBScriptsVolumeName,
 				MountPath: VectorDBScriptsMountPath,
 				ReadOnly:  true,
+			},
+			{
+				Name:      TmpVolumeName,
+				MountPath: TmpVolumeMountPath,
 			},
 		},
 	})
@@ -345,6 +397,10 @@ func buildInitContainers(instance *apiv1beta1.OpenStackLightspeed, initResources
 				Name:      LightspeedStackConfig,
 				MountPath: LightspeedStackInitContainerMountPath,
 				SubPath:   LightspeedStackConfigCMKey,
+			},
+			{
+				Name:      TmpVolumeName,
+				MountPath: TmpVolumeMountPath,
 			},
 		},
 	})
