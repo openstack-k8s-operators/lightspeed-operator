@@ -6,6 +6,7 @@
       jobs:
         - openstack-k8s-operators-content-provider
         - lightspeed-operator-kuttl
+        - lightspeed-operator-must-gather
 
 - job:
     name: lightspeed-operator-kuttl
@@ -27,3 +28,17 @@
     vars:
       cifmw_kuttl_tests_operator_list:
         - openstack_lightspeed
+
+# Dummy job to exercise openstack-must-gather with the openstack-lightspeed
+# namespace enabled. It reuses the kuttl deployment (which installs the
+# operator into the openstack-lightspeed namespace) and only adds the
+# lightspeed namespace to the must-gather collection list. must-gather runs
+# automatically during the base job's log-collection (post) phase.
+- job:
+    name: lightspeed-operator-must-gather
+    parent: lightspeed-operator-kuttl
+    attempts: 1
+    irrelevant-files: *irrelevant-files
+    vars:
+      cifmw_os_must_gather_additional_namespaces: "kuttl,openshift-storage,openshift-marketplace,openshift-operators,sushy-emulator,tobiko,openstack-lightspeed"
+      cifmw_os_must_gather_omc: false
