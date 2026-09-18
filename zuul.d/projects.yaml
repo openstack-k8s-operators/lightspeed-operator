@@ -2,7 +2,7 @@
 - project:
     name: openstack-k8s-operators/lightspeed-operator
     default-branch: main
-    github-check:
+    github-check-post-review:
       jobs:
         - openstack-k8s-operators-content-provider
         - lightspeed-operator-deployment-crc:
