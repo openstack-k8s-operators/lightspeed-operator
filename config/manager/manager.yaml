@@ -94,6 +94,8 @@ spec:
             value: quay.io/openstack-lightspeed/lightspeed-mcps:latest
         securityContext:
           allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          readOnlyRootFilesystem: true
           capabilities:
             drop:
             - "ALL"

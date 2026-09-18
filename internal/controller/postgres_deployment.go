@@ -159,6 +159,12 @@ func buildPostgresPodTemplateSpec(instance *apiv1beta1.OpenStackLightspeed) core
 			Annotations: make(map[string]string),
 		},
 		Spec: corev1.PodSpec{
+			SecurityContext: &corev1.PodSecurityContext{
+				RunAsNonRoot: toPtr(true),
+				SeccompProfile: &corev1.SeccompProfile{
+					Type: corev1.SeccompProfileTypeRuntimeDefault,
+				},
+			},
 			AutomountServiceAccountToken: toPtr(false),
 			Containers: []corev1.Container{
 				{
@@ -173,9 +179,9 @@ func buildPostgresPodTemplateSpec(instance *apiv1beta1.OpenStackLightspeed) core
 						},
 					},
 					SecurityContext: &corev1.SecurityContext{
-						AllowPrivilegeEscalation: &[]bool{false}[0],
-						ReadOnlyRootFilesystem:   &[]bool{true}[0],
-						RunAsNonRoot:             &[]bool{true}[0],
+						AllowPrivilegeEscalation: toPtr(false),
+						ReadOnlyRootFilesystem:   toPtr(true),
+						RunAsNonRoot:             toPtr(true),
 						Capabilities: &corev1.Capabilities{
 							Drop: []corev1.Capability{"ALL"},
 						},
