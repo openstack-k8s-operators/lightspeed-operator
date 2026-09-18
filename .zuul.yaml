@@ -37,6 +37,12 @@
 # a failing kuttl-test aborts make BEFORE undeploy -- so the deployment is still
 # live when the base job's post-phase must-gather runs.
 #
+# The `leak-canary` post-run playbook additionally plants a FAKE OpenAI-style
+# token (sk-proj-...) into the live openstack-lightspeed namespace (a ConfigMap
+# and a Pod log) so we can confirm ci-framework's crawl_n_mask masks it in the
+# collected must-gather artifacts. The child post-run runs before the base job's
+# must-gather post-run, so the leak is present when must-gather collects.
+#
 # NOTE: this job is intentionally RED. It exists only to inspect the must-gather
 # artifacts (logs/openstack-must-gather/.../namespaces/openstack-lightspeed) and
 # is not meant to merge.
@@ -45,6 +51,7 @@
     parent: lightspeed-operator-kuttl
     attempts: 1
     irrelevant-files: *irrelevant-files
+    post-run: ci/playbooks/leak-canary.yml
     vars:
       cifmw_os_must_gather_additional_namespaces: "openstack-lightspeed"
       cifmw_os_must_gather_omc: false
