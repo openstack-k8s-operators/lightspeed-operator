@@ -4,11 +4,23 @@
     name: lightspeed-operator-deployment-crc
     parent: podified-multinode-hci-deployment-crc-1comp-backends
     attempts: 1
+    final: true
     dependencies:
       - openstack-k8s-operators-content-provider
     required-projects:
       - openstack-k8s-operators/lightspeed-operator
       - openstack-k8s-operators/ci-framework
+    secrets:
+      - name: openai_credentials
+        secret: lightspeed-openai-token
+    # Create the LLM API-token Secret directly in a Zuul-owned playbook, where
+    # the encrypted secret is in scope. cifmw_openstack_lightspeed_api_token is
+    # deliberately left UNSET below so the ci-framework hook verifies this Secret
+    # instead of (re)creating it -- the token never enters cifmw params.
+    pre-run: ci/playbooks/create_lightspeed_secret.yml
+    post-run:
+      - name: ci/playbooks/cleanup_lightspeed_secret.yml
+        cleanup: true
     vars:
       pre_tests_01_deploy_lightspeed_operator:
         source: install-openstack-lightspeed.yml
@@ -21,8 +33,10 @@
       cifmw_openstack_lightspeed_llm_endpoint: "https://api.example.com/v1/chat/completions"
       cifmw_openstack_lightspeed_model_name: "example-model"
 
-      # Mock token for CI deployment testing (operator installs but service won't be functional)
-      cifmw_openstack_lightspeed_api_token: "dummy-token-for-ci"
+      # cifmw_openstack_lightspeed_api_token is intentionally NOT set here.
+      # Leaving it undefined makes install-openstack-lightspeed.yml take the
+      # "verify the Secret already exists" path instead of creating it, so the
+      # Secret pre-created by ci/playbooks/create_lightspeed_secret.yml is used.
 
       # TLS CA cert omitted for CI - not needed for dummy endpoint testing
       # Operator fails to parse invalid PEM data; omitting allows reconciliation to proceed
