@@ -1,0 +1,114 @@
+---
+# DNM canary playbook for the `lightspeed-operator-must-gather` job.
+#
+# Purpose: plant a *fake* OpenAI-style secret token into the live
+# `openstack-lightspeed` namespace so that openstack-must-gather collects it and
+# ci-framework's `crawl_n_mask` masking pass can be verified end-to-end.
+#
+# It runs as a Zuul post-run playbook on the dummy job, i.e. AFTER the main run
+# phase (operator is still deployed because the make chain aborts before
+# undeploy) and BEFORE the base job's post-phase must-gather (a child job's
+# post-run executes before its parents').
+#
+# Two independent leak vectors are planted:
+#   1. ConfigMap `logging-leaktest` -- deterministic, no image pull. Its name
+#      contains "logging" (an OSP_SERVICES entry) so `gather_services_cm`
+#      collects it as plaintext YAML.
+#   2. Pod `leak-canary` -- logs the token to stdout. `gather_ctlplane_resources`
+#      collects logs for every pod, and pod logs are NOT run through
+#      must-gather's own mask.py, so this isolates the test to `crawl_n_mask`.
+#      Best-effort: if the image cannot be pulled, the ConfigMap still works.
+#
+# NOTE: The token below is fake. It only needs to match the `sk-proj\S+` pattern
+# so it exercises the `openai_secret` rule added to `crawl_n_mask.py`.
+- name: Plant dummy OpenAI token leak for must-gather masking test
+  hosts: "{{ cifmw_zuul_target_host | default('all') }}"
+  gather_facts: true
+  vars:
+    cifmw_basedir: "{{ ansible_user_dir }}/ci-framework-data"
+    leak_canary_namespace: "openstack-lightspeed"
+    # Fake token, form sk-proj-XXXXXXX-XXXXX. Never a real credential.
+    leak_canary_token: "sk-proj-DUMMYcifmwTEST0123456789-cAnArYtoken"
+    # Fake password to compare masking styles: key/value masking keeps the
+    # first+last 2 chars (123445 -> 12**********45), whereas the token rule
+    # replaces the whole match (sk-proj-... -> **********).
+    leak_canary_password: "123445"
+    leak_canary_image: "registry.access.redhat.com/ubi9/ubi-minimal:latest"
+    leak_canary_manifest_dir: "{{ cifmw_basedir }}/artifacts/leak-canary"
+  tasks:
+    - name: Only run on the target host
+      when:
+        - cifmw_zuul_target_host is defined
+        - cifmw_zuul_target_host != 'all'
+        - inventory_hostname != cifmw_zuul_target_host
+      ansible.builtin.meta: end_host
+
+    - name: Load ci-framework parameters if present
+      ansible.builtin.include_vars:
+        dir: "{{ cifmw_basedir }}/artifacts/parameters"
+      failed_when: false
+
+    - name: Ensure manifest dir exists
+      ansible.builtin.file:
+        path: "{{ leak_canary_manifest_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Render leak manifests
+      ansible.builtin.copy:
+        dest: "{{ leak_canary_manifest_dir }}/leak-canary.yaml"
+        mode: "0644"
+        content: |
+          ---
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: logging-leaktest
+            namespace: {{ leak_canary_namespace }}
+          data:
+            notes: "Configured OpenAI api key is {{ leak_canary_token }} - remove me"
+            password: "{{ leak_canary_password }}"
+          ---
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: leak-canary
+            namespace: {{ leak_canary_namespace }}
+          spec:
+            restartPolicy: Never
+            containers:
+              - name: leak-canary
+                image: {{ leak_canary_image }}
+                command:
+                  - /bin/sh
+                  - -c
+                  - "echo 'Using OpenAI api key {{ leak_canary_token }}'; echo 'password={{ leak_canary_password }}'; sleep 3600"
+
+    - name: Plant the leaks in the live namespace
+      environment:
+        KUBECONFIG: "{{ cifmw_openshift_kubeconfig | default(ansible_user_dir ~ '/.kube/config') }}"
+        PATH: "{{ cifmw_path | default(ansible_env.PATH) }}"
+      block:
+        - name: Apply leak manifests (ConfigMap + Pod)
+          ansible.builtin.command:
+            cmd: "oc apply -f {{ leak_canary_manifest_dir }}/leak-canary.yaml"
+          register: _leak_apply
+          changed_when: true
+          # ConfigMap is the guaranteed vector; tolerate a Pod image-pull issue.
+          failed_when: false
+
+        - name: Wait for the leak pod to log the token (best-effort)
+          ansible.builtin.command:
+            cmd: >-
+              oc -n {{ leak_canary_namespace }}
+              wait --for=condition=Ready pod/leak-canary --timeout=120s
+          register: _leak_pod_ready
+          changed_when: false
+          failed_when: false
+
+        - name: Report leak-canary status
+          ansible.builtin.debug:
+            msg: >-
+              apply rc={{ _leak_apply.rc | default('n/a') }};
+              pod ready={{ (_leak_pod_ready.rc | default(1)) == 0 }};
+              token planted: {{ leak_canary_token }}
