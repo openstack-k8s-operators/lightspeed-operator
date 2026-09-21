@@ -5,6 +5,5 @@
     github-check:
       jobs:
         - openstack-k8s-operators-content-provider
-        - lightspeed-operator-deployment-crc:
-            voting: false
         - lightspeed-operator-kuttl
+        - lightspeed-operator-must-gather

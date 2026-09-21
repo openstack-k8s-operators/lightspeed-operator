@@ -51,3 +51,38 @@
     vars:
       cifmw_kuttl_tests_operator_list:
         - openstack_lightspeed
+
+
+# One-off DNM job to confirm openstack-must-gather collects the
+# openstack-lightspeed namespace in CI. It reuses the kuttl job as-is (which
+# really deploys the operator into openstack-lightspeed), and forces the kuttl
+# test to fail fast with a 1s timeout. Because the make target runs the chain
+# `... openstack-lightspeed-deploy kuttl-test openstack-lightspeed-undeploy`,
+# a failing kuttl-test aborts make BEFORE undeploy -- so the deployment is still
+# live when the base job's post-phase must-gather runs.
+#
+# The `leak-canary` post-run playbook additionally plants a FAKE OpenAI-style
+# token (sk-proj-...) into the live openstack-lightspeed namespace (a ConfigMap
+# and a Pod log) so we can confirm ci-framework's crawl_n_mask masks it in the
+# collected must-gather artifacts. The child post-run runs before the base job's
+# must-gather post-run, so the leak is present when must-gather collects.
+#
+# NOTE: this job is intentionally RED. It exists only to inspect the must-gather
+# artifacts (logs/openstack-must-gather/.../namespaces/openstack-lightspeed) and
+# is not meant to merge.
+- job:
+    name: lightspeed-operator-must-gather
+    parent: lightspeed-operator-kuttl
+    attempts: 1
+    irrelevant-files: *irrelevant-files
+    post-run: ci/playbooks/leak-canary.yml
+    vars:
+      cifmw_os_must_gather_additional_namespaces: "openstack-lightspeed"
+      cifmw_os_must_gather_omc: false
+      # openstack-lightspeed-deploy runs first in the make chain and completes;
+      # the 1s kuttl timeout then fails kuttl-test, aborting make before the
+      # openstack-lightspeed-undeploy step. KUTTL_ARGS is unset in the Makefile,
+      # so this env var flows straight into `kubectl-kuttl test ... $(KUTTL_ARGS)`.
+      # (Set via *_env_vars, not *_env, which is recomputed by a set_fact.)
+      cifmw_kuttl_tests_env_vars:
+        KUTTL_ARGS: "--timeout 1"
