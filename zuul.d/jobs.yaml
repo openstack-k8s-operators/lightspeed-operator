@@ -14,26 +14,10 @@
       - name: openai_credentials
         secret: lightspeed-openai-token
     vars:
-      pre_tests_01_deploy_lightspeed_operator:
-        source: install-openstack-lightspeed.yml
-        type: playbook
-
-      # Operator catalog image from content-provider dependency
-      cifmw_openstack_lightspeed_catalog_image: "{{ content_provider_registry_ip }}:5001/openstack-k8s-operators/lightspeed-operator-index:{{ zuul.patchset }}"
-
-      # LLM configuration
-      cifmw_openstack_lightspeed_llm_endpoint: "https://api.example.com/v1/chat/completions"
-      cifmw_openstack_lightspeed_model_name: "example-model"
-
-      # API token from encrypted secret (only available in post-review pipeline)
-      cifmw_openstack_lightspeed_api_token: "{{ openai_credentials.api_token }}"
-
-      # TLS CA cert omitted for CI - not needed for dummy endpoint testing
-      # Operator fails to parse invalid PEM data; omitting allows reconciliation to proceed
-      # to expected failure point (LLM credential validation)
-      # Uncomment and provide valid PEM cert when testing with real LLM endpoint
-
-      # cifmw_openstack_lightspeed_ca_cert: "dummy-cert-for-ci"
+      cifmw_extras:
+        - "@{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/lightspeed-operator'].src_dir }}/ci/hooks/deploy-operator-pre-tests.yaml"
+        - "@scenarios/centos-9/multinode-ci.yml"
+        - "@scenarios/centos-9/hci_ceph_backends.yml"
 
 - job:
     name: lightspeed-operator-kuttl
