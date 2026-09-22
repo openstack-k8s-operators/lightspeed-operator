@@ -1,0 +1,14 @@
+---
+pre_tests_01_deploy_lightspeed_operator:
+  source: install-openstack-lightspeed.yml
+  type: playbook
+
+  # Operator catalog image from content-provider dependency
+  cifmw_openstack_lightspeed_catalog_image: "{{ content_provider_registry_ip }}:5001/openstack-k8s-operators/lightspeed-operator-index:{{ zuul.patchset }}"
+
+  # LLM configuration
+  cifmw_openstack_lightspeed_llm_endpoint: "https://api.example.com/v1/chat/completions"
+  cifmw_openstack_lightspeed_model_name: "example-model"
+
+  # API token from encrypted secret (only available in post-review pipeline)
+  cifmw_openstack_lightspeed_api_token: "{{ openai_credentials.api_token }}"
