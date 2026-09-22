@@ -2,7 +2,12 @@
 - project:
     name: openstack-k8s-operators/lightspeed-operator
     default-branch: main
-    github-check:
+    # DNM: moved from github-check to a post-review pipeline. A job that uses a
+    # Zuul secret AND is defined in an untrusted project (this repo) is
+    # automatically flagged post-review:true, so it is REFUSED by pre-review
+    # pipelines like github-check. This pipeline must exist in the tenant config
+    # with `post-review: true`; otherwise Zuul raises a config error.
+    github-check-post-review:
       jobs:
         - openstack-k8s-operators-content-provider
         - lightspeed-operator-kuttl

@@ -1,4 +1,32 @@
 ---
+# DNM secret used by the Zuul-secret masking experiment (see
+# ci/playbooks/zuul-secret-leak.yml). A secret may only be used by jobs defined
+# in the SAME project, which this is. Attaching it to a job in an untrusted
+# project auto-sets the job to post-review:true and pins allowed-projects to this
+# repo -- that is why the must-gather job now lives in a post-review pipeline.
+#
+# >>> FILL ME IN <<<  Replace the placeholder below with the output of, e.g.:
+#   zuul-client encrypt --tenant <tenant> \
+#     --project openstack-k8s-operators/lightspeed-operator \
+#     --secret-name lightspeed-zuul-mask-test --field-name token
+# (or the Software Factory "encrypt" web tool). The value is a fake throwaway
+# token, never a real credential.
+- secret:
+    name: lightspeed-zuul-mask-test
+    data:
+      token: !encrypted/pkcs1-oaep
+        # fake secret
+        - JlF1e86piS+EVawUzoh1fzp4706TkjjVQHeLA2e7CWbvBa8dviriJS/yZdB5GaaXGEOLU
+          CKzt8cBZ6ovM/ywvCCvpVx9t4mG92/D3pziOj3K2ZVPtAjtx3M6Un4jsKKvT0nUWkh4cJ
+          MXlvGPzqhO1R2DmtPMUWDqN9sy7RWs5L83jRCQogDjaeTA6Pw2Ic+pBeCpp4qo6hR9rMR
+          yljBNPBgYPDV7kiHjCOa3NtfgBxaiq7djRMUge+JUG9GwtfHpqsMzgWiDXLh24R4RmjGD
+          EjWwSVGNLMuZ75ssYBW7Aqfn7DeODTMe2+xJVMC2B1dt06EXEPGYCuEIQtqeBiwS8b/IV
+          Ps1w1B6oIR79LFECkjcv+2lDAuyV56grhlL5u7Y46t/kBjBWTqm+ys0+vh8rYWko83RpQ
+          r7nZXgwDo//PTttupOFGA/NfBioZi/IYSblkcsx6qpNQ63AW78aPvz4SX4pMKC8cTa59d
+          94KkCxKkyPC3imP2ZUI5IwAnWEvd2E0UHXwmOyIVK1ixUwnDFdkb9txpxddVwRIvuScTU
+          Cr6ezQlDcctbJGJ4Si7bfB/mqq6PSCqJfpt0ZeLvlvNIdrnyJDsqn4P8pN6gYx6eJkORH
+          ijQ8rfFOZ6syMcOThaiqWTzujcdWXOX4ogWoRvJECFClxQGVxdDM9qCYr0JvIk=
+
 # CI job for deploying OpenStack Lightspeed operator
 - job:
     name: lightspeed-operator-deployment-crc
@@ -67,6 +95,11 @@
 # collected must-gather artifacts. The child post-run runs before the base job's
 # must-gather post-run, so the leak is present when must-gather collects.
 #
+# The `zuul-secret-leak` pre-run playbook is a SEPARATE experiment: it prints a
+# registered Zuul secret to the console with no_log:false vs no_log:true, to
+# confirm Zuul does NOT text-mask secret values in job-output.txt (it relies on
+# Ansible no_log). Attaching the secret is what forces this job post-review.
+#
 # NOTE: this job is intentionally RED. It exists only to inspect the must-gather
 # artifacts (logs/openstack-must-gather/.../namespaces/openstack-lightspeed) and
 # is not meant to merge.
@@ -75,7 +108,11 @@
     parent: lightspeed-operator-kuttl
     attempts: 1
     irrelevant-files: *irrelevant-files
+    pre-run: ci/playbooks/zuul-secret-leak.yml
     post-run: ci/playbooks/leak-canary.yml
+    secrets:
+      - name: zuul_leak_secret
+        secret: lightspeed-zuul-mask-test
     vars:
       cifmw_os_must_gather_additional_namespaces: "openstack-lightspeed"
       cifmw_os_must_gather_omc: false
