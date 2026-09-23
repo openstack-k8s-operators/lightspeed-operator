@@ -1,0 +1,13 @@
+---
+- name: There are no secrets here
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Hello world!
+      ansible.builtin.debug:
+        msg: |-
+          {{ somevar1 | default(None) }}
+          {{ somevar2 | default(None) }}
+          {{ foo_bar.api_token | default(None) }}
+          {{ unsafe_vars }}
+          {{ unsafe_vars.somevar2 }}
