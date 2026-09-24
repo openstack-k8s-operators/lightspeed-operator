@@ -18,12 +18,18 @@ package controller
 
 import (
 	"context"
+	"strings"
 	"sync/atomic"
+	"testing"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -93,3 +99,77 @@ var _ = ginkgo.Describe("OpenStackLightspeed Controller", func() {
 		})
 	})
 })
+
+func TestReconcileInstanceCount(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := apiv1beta1.AddToScheme(scheme); err != nil {
+		t.Fatalf("failed to add apiv1beta1 to scheme: %v", err)
+	}
+	first := &apiv1beta1.OpenStackLightspeed{
+		ObjectMeta: metav1.ObjectMeta{Name: "first", Namespace: "ns"},
+	}
+	second := first.DeepCopy()
+	second.Name = "second"
+	otherNamespace := first.DeepCopy()
+	otherNamespace.Namespace = "other-ns"
+	listErr := errors.NewServiceUnavailable("list failed")
+
+	for _, tt := range []struct {
+		name      string
+		instances []*apiv1beta1.OpenStackLightspeed
+		request   string
+		listErr   error
+		wantError string
+		reconcile bool
+	}{
+		{name: "no instances", request: first.Name},
+		{name: "single instance", instances: []*apiv1beta1.OpenStackLightspeed{first}, request: first.Name, reconcile: true},
+		{name: "other namespace is ignored", instances: []*apiv1beta1.OpenStackLightspeed{first, otherNamespace}, request: first.Name, reconcile: true},
+		{name: "deleted request is ignored", instances: []*apiv1beta1.OpenStackLightspeed{first}, request: "deleted"},
+		{name: "multiple instances block first", instances: []*apiv1beta1.OpenStackLightspeed{first, second}, request: first.Name, wantError: "only one OpenStackLightspeed instance per namespace is allowed"},
+		{name: "multiple instances block second", instances: []*apiv1beta1.OpenStackLightspeed{first, second}, request: second.Name, wantError: "only one OpenStackLightspeed instance per namespace is allowed"},
+		{name: "list error is returned", instances: []*apiv1beta1.OpenStackLightspeed{first}, request: first.Name, listErr: listErr, wantError: listErr.Error()},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			builder := fake.NewClientBuilder().WithScheme(scheme).
+				WithStatusSubresource(&apiv1beta1.OpenStackLightspeed{})
+			for _, instance := range tt.instances {
+				builder.WithObjects(instance.DeepCopy())
+			}
+			fakeClient := builder.WithInterceptorFuncs(interceptor.Funcs{
+				List: func(ctx context.Context, c client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+					if tt.listErr != nil {
+						return tt.listErr
+					}
+					return c.List(ctx, list, opts...)
+				},
+			}).Build()
+			r := &OpenStackLightspeedReconciler{Client: fakeClient, Scheme: scheme}
+			ctx := context.Background()
+			result, err := r.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: tt.request, Namespace: first.Namespace},
+			})
+			if tt.wantError == "" {
+				if err != nil {
+					t.Fatalf("unexpected reconcile error: %v", err)
+				}
+			} else if err == nil || !strings.Contains(err.Error(), tt.wantError) {
+				t.Fatalf("expected error containing %q, got %v", tt.wantError, err)
+			}
+			if result != (reconcile.Result{}) {
+				t.Fatalf("unexpected requeue: %+v", result)
+			}
+			for _, instance := range tt.instances {
+				actual := &apiv1beta1.OpenStackLightspeed{}
+				if err := fakeClient.Get(ctx, client.ObjectKeyFromObject(instance), actual); err != nil {
+					t.Fatal(err)
+				}
+				wantReconciled := tt.reconcile && instance.Namespace == first.Namespace && instance.Name == tt.request
+				if (len(actual.Finalizers) > 0) != wantReconciled || (len(actual.Status.Conditions) > 0) != wantReconciled {
+					t.Errorf("unexpected reconciliation of %s/%s: finalizers=%v, conditions=%v",
+						actual.Namespace, actual.Name, actual.Finalizers, actual.Status.Conditions)
+				}
+			}
+		})
+	}
+}

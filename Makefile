@@ -162,8 +162,17 @@ build: manifests generate fmt vet ## Build manager binary.
 	go build -o bin/manager cmd/main.go
 
 .PHONY: run
+run: export ENABLE_WEBHOOKS ?= false
 run: manifests generate fmt vet ## Run a controller from your host.
 	source ./scripts/env.sh && go run ./cmd/main.go $(ARGS)
+
+.PHONY: run-with-webhook
+run-with-webhook: build ## Run locally with a validating webhook for Linux CRC.
+	OC="$(OC)" bash hack/run_with_local_webhook.sh $(ARGS)
+
+.PHONY: webhook-cleanup
+webhook-cleanup: ## Remove the admission webhook used for local development.
+	OC="$(OC)" bash hack/clean_local_webhook.sh
 
 # If you wish to build the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.
@@ -231,6 +240,7 @@ $(LOCALBIN):
 
 ## Tool Binaries
 KUBECTL ?= kubectl
+OC ?= oc
 KIND ?= kind
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen

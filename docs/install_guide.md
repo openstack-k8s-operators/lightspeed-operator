@@ -146,6 +146,12 @@ spec:
 This deploys the full stack: the AI engine (lightspeed-stack and
 OGX), PostgreSQL, OKP, and the console plugin.
 
+> [!NOTE]
+> A single OpenStackLightspeed instance is supported
+> in the openstack-lightspeed namespace. The validating webhook rejects
+> additional instances at creation time. To replace an instance, delete it
+> and wait for its removal before creating another.
+
 ## Verifying the deployment
 
 ```bash

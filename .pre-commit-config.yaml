@@ -11,6 +11,7 @@ repos:
         name: shellcheck
         language: system
         entry: shellcheck
+        args: ['--external-sources']
         types: [shell]
       - id: kuttl-assert-collectors
         name: Validate KUTTL assert collectors

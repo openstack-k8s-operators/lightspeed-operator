@@ -110,14 +110,14 @@ func (r *OpenStackLightspeedReconciler) Reconcile(ctx context.Context, req ctrl.
 	Log := r.GetLogger(ctx)
 	Log.Info("OpenStackLightspeed Reconciling")
 
-	instance := &apiv1beta1.OpenStackLightspeed{}
-	err := r.Get(ctx, req.NamespacedName, instance)
+	instance, err := r.GetOpenStackLightspeed(ctx, req)
 	if err != nil {
-		if k8s_errors.IsNotFound(err) {
-			Log.Info("OpenStackLightspeed CR not found")
-			return ctrl.Result{}, nil
-		}
+		Log.Error(err, "Cannot reconcile OpenStackLightspeed")
 		return ctrl.Result{}, err
+	}
+	if instance == nil {
+		Log.Info("No OpenStackLightspeed CR matches the reconcile request", "name", req.Name, "namespace", req.Namespace)
+		return ctrl.Result{}, nil
 	}
 
 	helper, err := common_helper.NewHelper(
@@ -360,6 +360,23 @@ func (r *OpenStackLightspeedReconciler) reconcileStatus(
 	helper.GetLogger().Info("OpenStackLightspeed Reconciled successfully")
 
 	return ctrl.Result{}, nil
+}
+
+// GetOpenStackLightspeed returns the instance matching the request, or nil if none matches.
+// It returns an error if listing fails or more than one instance exists in the namespace.
+func (r *OpenStackLightspeedReconciler) GetOpenStackLightspeed(ctx context.Context, req ctrl.Request) (*apiv1beta1.OpenStackLightspeed, error) {
+	instances := &apiv1beta1.OpenStackLightspeedList{}
+	if err := r.List(ctx, instances, client.InNamespace(req.Namespace)); err != nil {
+		return nil, err
+	}
+	if len(instances.Items) > 1 {
+		return nil, fmt.Errorf("only one OpenStackLightspeed instance per namespace is allowed; found %d in namespace %q",
+			len(instances.Items), req.Namespace)
+	}
+	if len(instances.Items) == 0 || instances.Items[0].Name != req.Name {
+		return nil, nil
+	}
+	return &instances.Items[0], nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

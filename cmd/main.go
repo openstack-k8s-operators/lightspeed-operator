@@ -51,6 +51,7 @@ import (
 
 	lightspeedv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/lightspeed-operator/internal/controller"
+	webhookv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/internal/webhook/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -79,6 +80,7 @@ func main() {
 	var metricsAddr string
 	var metricsCertPath, metricsCertName, metricsCertKey string
 	var webhookCertPath, webhookCertName, webhookCertKey string
+	var webhookPort int
 	var enableLeaderElection bool
 	var probeAddr string
 	var secureMetrics bool
@@ -95,6 +97,7 @@ func main() {
 	flag.StringVar(&webhookCertPath, "webhook-cert-path", "", "The directory that contains the webhook certificate.")
 	flag.StringVar(&webhookCertName, "webhook-cert-name", "tls.crt", "The name of the webhook certificate file.")
 	flag.StringVar(&webhookCertKey, "webhook-cert-key", "tls.key", "The name of the webhook key file.")
+	flag.IntVar(&webhookPort, "webhook-port", 9443, "The port the webhook server listens on.")
 	flag.StringVar(&metricsCertPath, "metrics-cert-path", "",
 		"The directory that contains the metrics server certificate.")
 	flag.StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "The name of the metrics server certificate file.")
@@ -157,6 +160,7 @@ func main() {
 	}
 
 	webhookServer := webhook.NewServer(webhook.Options{
+		Port:    webhookPort,
 		TLSOpts: webhookTLSOpts,
 	})
 
@@ -267,6 +271,16 @@ func main() {
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "OpenStackLightspeed")
 		os.Exit(1)
+	}
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err := webhookv1beta1.SetupOpenStackLightspeedWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "OpenStackLightspeed")
+			os.Exit(1)
+		}
+		if err := mgr.AddReadyzCheck("webhook", webhookServer.StartedChecker()); err != nil {
+			setupLog.Error(err, "unable to set up webhook ready check")
+			os.Exit(1)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 
