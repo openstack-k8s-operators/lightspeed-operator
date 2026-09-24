@@ -41,6 +41,11 @@ const (
 	// OpenStackLightspeedReadyMessage
 	OpenStackLightspeedReadyMessage = "OpenStack Lightspeed created"
 
+	// OpenStackLightspeedDuplicateInstanceMessage is set when more than one
+	// OpenStackLightspeed exists in a namespace. Only a single instance per
+	// namespace is supported; duplicates are left inactive.
+	OpenStackLightspeedDuplicateInstanceMessage = "OpenStack Lightspeed not started because there is an already existing instance."
+
 	// OpenStackLightspeedWaitingVectorDBMessage
 	OpenStackLightspeedWaitingVectorDBMessage = "Waiting for OpenStackLightspeed vector DB pod to become ready"
 
