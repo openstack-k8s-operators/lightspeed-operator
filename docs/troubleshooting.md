@@ -37,7 +37,6 @@ Shrinking `spec.database.size` below the existing PVC is rejected (not
 supported in place). Revert the size, or delete/recreate the PVC to
 actually shrink it (loses data).
 
-(console-widget-not-appearing)=
 ### Console widget not appearing
 
 - Confirm the `ConsolePlugin` (`lightspeed-console-plugin`) exists and
@@ -48,7 +47,6 @@ actually shrink it (loses data).
 - Check the plugin's pod logs for TLS errors — its service-ca certificate
   can take a few seconds to appear after first deploy.
 
-(imagepullbackoff)=
 ### ImagePullBackOff on any operator-managed pod
 
 The console plugin and OKP pods come from `registry.redhat.io`, not
@@ -58,8 +56,9 @@ The console plugin and OKP pods come from `registry.redhat.io`, not
 Failed to pull image "registry.redhat.io/...": unauthorized: Please login to the Red Hat Registry using your Customer Portal credentials.
 ```
 
-Means the pull secret is missing `registry.redhat.io` credentials — see
-{ref}`redhat-registry-access` to fix and verify with Podman.
+Means the pull secret is missing `registry.redhat.io` credentials — see the
+[registry-access steps](install_guide.md#access-to-registry-images) to fix and verify with the documented `oc run`
+test.
 
 ### CA bundle errors
 
@@ -73,7 +72,7 @@ are parsed, not just one named `cert`).
 oc logs -n <operator-namespace> deploy/openstack-lightspeed-operator-controller-manager
 ```
 
-Still stuck? See {doc}`index` for the repos to file an issue against.
+Still stuck? See the [documentation home](index.md) for the repos to file an issue against.
 When filing one, include `oc describe -n openstack-lightspeed
 openstacklightspeed` output, pod logs, and your CR spec — **redact API
 tokens, endpoint URLs/hostnames, and any retrieved context from all

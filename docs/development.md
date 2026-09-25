@@ -3,12 +3,11 @@
 This page is for contributors and anyone testing changes locally — not
 needed if you're just installing and using the operator.
 
-(dont-have-a-cluster-yet-crc)=
-## Local cluster (CRC)
+## Local cluster with CRC
 
 For local development/testing only (not for trying the assistant for real
 — CRC is resource-constrained). Deploy a CRC cluster before
-{ref}`installing-the-operator`:
+[installing the operator](install_guide.md#installing-the-operator):
 
 ```bash
 git clone https://github.com/openstack-k8s-operators/install_yamls.git
@@ -21,7 +20,8 @@ eval $(crc oc-env)
 cd ../..
 ```
 
-`PULL_SECRET` is the same pull secret from {ref}`redhat-registry-access`.
+`PULL_SECRET` is the same pull secret described in the
+[installation guide](install_guide.md#access-to-registry-images).
 
 CRC's console is always at a fixed address:
 [console-openshift-console.apps-crc.testing](https://console-openshift-console.apps-crc.testing) — not something you
@@ -60,7 +60,7 @@ graph TB
 
 **OKP is deployed on every install, not opt-in.** It's the default RAG
 source; the bundled community documentation is available too, but only if
-you explicitly opt in. See {doc}`configuration` for details.
+you explicitly opt in. See [Configuration](configuration.md) for details.
 
 ## Pod security defaults
 

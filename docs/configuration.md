@@ -9,7 +9,7 @@ field in its `spec`.
 | Field | Required | Description |
 |-------|----------|-------------|
 | `llmEndpoint` | Yes | URL of the LLM endpoint (e.g. `https://api.openai.com/v1`). Must start with `http://` or `https://`. |
-| `llmEndpointType` | Yes | Provider type. See {ref}`supported-providers`. |
+| `llmEndpointType` | Yes | Provider type. See [supported providers](configuration.md#supported-providers). |
 | `modelName` | Yes | Model name to use at `llmEndpoint`. |
 | `llmCredentials` | Yes | `Secret` name (same namespace) with the API token under key `apitoken`. |
 | `tlsCACertBundle` | No | `ConfigMap` name (same namespace) with a CA bundle for the LLM endpoint. |
@@ -17,11 +17,8 @@ field in its `spec`.
 | `llmProjectID` | No | Required by some providers (e.g. WatsonX). |
 | `llmDeploymentName` | No | Required by some providers (e.g. Azure OpenAI). |
 | `llmAPIVersion` | No | Required by some providers (e.g. Azure OpenAI). |
-| `feedbackEnabled` | No | User feedback collection. Defaults to `true`. |
-| `transcriptsEnabled` | No | Conversation transcript collection. Defaults to `false`. |
 
-(supported-providers)=
-## Supported LLM providers (`llmEndpointType`)
+## Supported providers
 
 - `openai` — OpenAI-compatible endpoints (Ollama, vLLM, etc.)
 - `azure_openai` — Azure OpenAI (needs `llmDeploymentName`, `llmAPIVersion`)
@@ -35,14 +32,28 @@ field in its `spec`.
 > `oc explain openstacklightspeed.spec.llmEndpointType` on your cluster
 > for the current, authoritative list.
 
-## Logging (`logging`)
+## Logging
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| `logging.ogxLogLevel` | `all=info` | OGX container. Standard level, or `component=level` pairs (e.g. `core=debug,providers=info`). |
-| `logging.lightspeedStackLogLevel` | `INFO` | lightspeed-service-api container. `DEBUG`/`INFO`/`WARNING`/`ERROR`/`CRITICAL`. |
-| `logging.dataverseExporterLogLevel` | `INFO` | Feedback/transcript exporter sidecar. Same values as above. |
-| `logging.postgresLogLevel` | `INFO` | PostgreSQL container. `DEBUG` also logs every SQL statement. |
+| `ogx.logLevel` | `all=info` | OGX container. Standard level, or `component=level` pairs (e.g. `core=debug,providers=info`). |
+| `lcore.logLevel` | `INFO` | lightspeed-service-api container. `DEBUG`/`INFO`/`WARNING`/`ERROR`/`CRITICAL`. |
+| `dataverseExporter.logLevel` | `INFO` | Feedback/transcript exporter sidecar. Same values as above. |
+| `database.logLevel` | `INFO` | PostgreSQL container. `DEBUG` also logs every SQL statement. |
+
+## Data collection
+
+```yaml
+spec:
+  dataverseExporter:
+    feedback:
+      enabled: true       # default: true
+    transcripts:
+      enabled: false      # default: false
+```
+
+`feedback.enabled` records thumbs-up/down responses. `transcripts.enabled`
+records full conversations. Both are sent by the Dataverse exporter sidecar.
 
 ## Persistent storage (`database`)
 
@@ -56,41 +67,59 @@ spec:
     class: "my-storage-class"  # default: cluster's default StorageClass
 ```
 
-## Container resources (`resources`)
+## Container resources
 
 Every container has a default request/limit. Setting one replaces its
 default entirely:
 
 ```yaml
 spec:
-  resources:
-    llamaStack:
+  ogx:
+    resources:
       requests: {cpu: "500m", memory: "2Gi"}
       limits: {cpu: "2", memory: "8Gi"}
-    lightspeedService:
+  lcore:
+    resources:
       requests: {cpu: "250m", memory: "512Mi"}
       limits: {cpu: "1", memory: "2Gi"}
-    postgres:
+  database:
+    resources:
       requests: {cpu: "30m", memory: "300Mi"}
       limits: {cpu: "500m", memory: "2Gi"}
-    okp:
+  okp:
+    resources:
       requests: {cpu: "500m", memory: "2Gi"}
       limits: {cpu: "2", memory: "4Gi"}
-    consolePlugin:
+  console:
+    resources:
       requests: {cpu: "50m", memory: "64Mi"}
       limits: {cpu: "200m", memory: "256Mi"}
-    mcp:
-      requests: {cpu: "50m", memory: "300Mi"}
-      limits: {memory: "500Mi"}
 ```
 
-(offline-knowledge-portal)=
-## Offline Knowledge Portal (`okp`)
+The optional RHOSO MCP sidecar has default resources of `50m` CPU and `300Mi`
+memory requested, with a `500Mi` memory limit. Configure it at
+`dev.rhosMCP.resources` when the `rhoso_mcps` feature flag is enabled.
+
+## Container images
+
+Each managed workload can use a custom image. Set `containerImage` under the
+relevant component: `rag`, `ogx`, `lcore`, `database`, `dataverseExporter`,
+`okp`, or `console`; for the optional MCP sidecar use
+`dev.rhosMCP.containerImage`. When omitted, the operator uses its configured
+default image. For example, to configure LCORE container image:
+
+```yaml
+spec:
+  lcore:
+    containerImage: quay.io/<custom-org>/<custom-image-name>:<tag>
+```
+
+## Offline knowledge portal
 
 > [!IMPORTANT]
 > OKP is deployed on **every** install — `spec.okp` configures it, it
 > doesn't gate whether it's deployed. Pulling its image needs the same
-> free `registry.redhat.io` account as {ref}`redhat-registry-access`.
+> free `registry.redhat.io` account described in the [installation guide](install_guide.md#access-to-registry-images).
 
 ```yaml
 spec:
@@ -101,6 +130,7 @@ spec:
 spec:
   okp:
     accessKey: okp-access-key-secret   # Secret key: "access_key"
+    offline: true                      # default: resolve documentation URLs offline
 ```
 
 - **No `accessKey`** (default) — you can navigate directly to and read
@@ -115,8 +145,8 @@ spec:
 By default, **RAG grounding is OKP-only** — the bundled community
 documentation is disabled unless you set `dev.okpRagOnly: false` (below).
 
-(quota-enforcement)=
-## Quota enforcement (`quotas`)
+
+## Quota enforcement
 
 Configure one or more limiters to enable token quota enforcement. The
 operator uses its managed PostgreSQL instance for quota storage. Omitting
@@ -176,9 +206,17 @@ spec:
       - rhoso_mcps   # enables the read-only MCP introspection sidecar
     okpChunkFilterQuery: "product:(*openstack* OR *openshift*)"  # example override
     okpRagOnly: false  # include bundled community docs too, not just OKP
-    rhosMCPConfig: |
-      debug: true
-      workers: 4
+    rhosMCP:
+      config: |
+        debug: true
+        workers: 4
+      resources:
+        requests:
+          cpu: "50m"
+          memory: "300Mi"
+        limits:
+          memory: "500Mi"
+      containerImage: quay.io/openstack-lightspeed/lightspeed-mcps:latest
 ```
 
 - `okpChunkFilterQuery` and `okpRagOnly` take effect immediately, with
@@ -187,8 +225,10 @@ spec:
   OpenShift/RHOSO versions instead of using the literal example above.
 - `rhoso_mcps` — the one flag that does need to be set. Deploys the MCP
   introspection sidecar, which is read-only **by default**. See
-  {doc}`usage`.
-- `rhosMCPConfig` is deep-merged on top of the operator's own defaults
-  — it can override anything the default config sets, including the
-  `allow_write` flags that keep introspection read-only. Only set this
-  if you understand exactly what you're overriding.
+  [Usage](usage.md).
+- `rhosMCP` configures the MCP sidecar. Its `config` value is deep-merged
+  on top of the operator's defaults and can override anything they set,
+  including the `allow_write` flags that keep introspection read-only. Only
+  set it if you understand exactly what you're overriding. `resources` and
+  `containerImage` respectively configure the sidecar resource requirements
+  and image.

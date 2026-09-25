@@ -2,7 +2,7 @@
 
 This page covers prerequisites, installing the operator, setting up LLM
 credentials, and deploying `OpenStackLightspeed`. No cluster yet? See
-{ref}`dont-have-a-cluster-yet-crc`
+[local CRC setup](development.md#local-cluster-with-crc).
 
 ## Prerequisites
 
@@ -12,15 +12,15 @@ credentials, and deploying `OpenStackLightspeed`. No cluster yet? See
   > Known issue: the console UI does not currently work on OpenShift 4.20
   > or newer. Stick to 4.18 until this is resolved.
 
-- An LLM endpoint and API key — any provider from
-  {ref}`supported-providers` works.
+- An LLM endpoint and API key — any [supported provider](configuration.md#supported-providers)
+  works.
 - A free Red Hat Developer account, to pull some images from
-  `registry.redhat.io` — see {ref}`redhat-registry-access` below.
+  `registry.redhat.io` — see [registry access](install_guide.md#access-to-registry-images)
+  below.
 - Optional: RHOSO installed, only needed for the experimental
-  cluster-introspection feature ({doc}`usage`).
+  cluster-introspection feature ([Usage](usage.md)).
 
-(redhat-registry-access)=
-## Access to registry.redhat.io images
+## Access to registry images
 
 The console plugin and OKP images (both always deployed) come from
 `registry.redhat.io` rather than `quay.io`. This requires a **free**
@@ -31,7 +31,7 @@ account you can create by following these steps:
 3. Add it to your cluster:
 
    - **CRC**: pass it as `PULL_SECRET` when creating the cluster — see
-     {ref}`dont-have-a-cluster-yet-crc`.
+     [local CRC setup](development.md#local-cluster-with-crc).
    - **Existing cluster**: merge it into the cluster-wide pull secret:
 
      ```bash
@@ -52,9 +52,8 @@ account you can create by following these steps:
    Any status other than `ImagePullBackOff`/`ErrImagePull` means it's
    working — clean up with `oc delete pod registry-pull-test`. If you do
    see it, the secret from the previous step didn't propagate — see
-   {ref}`console-widget-not-appearing`.
+   [Console widget not appearing](troubleshooting.md#console-widget-not-appearing).
 
-(installing-the-operator)=
 ## Installing the operator
 
 1. **Operators → OperatorHub**, search for **"OpenStack Lightspeed
@@ -127,7 +126,7 @@ the next step.
 ## Deploying OpenStackLightspeed
 
 At minimum, set `llmEndpoint`, `llmEndpointType`, `modelName`, and
-`llmCredentials` — see {doc}`configuration` for the full list of
+`llmCredentials` — see [Configuration](configuration.md) for the full list of
 supported `llmEndpointType` values and everything else:
 
 ```yaml
@@ -154,7 +153,7 @@ oc describe -n openstack-lightspeed openstacklightspeed
 oc get -n openstack-lightspeed deployments,pods
 ```
 
-Not reaching `Ready`? See {doc}`troubleshooting`.
+Not reaching `Ready`? See [Troubleshooting](troubleshooting.md).
 
 ## Accessing the assistant
 

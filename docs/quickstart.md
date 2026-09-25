@@ -1,14 +1,14 @@
 # Quickstart
 
 Already have an OpenShift cluster and an LLM endpoint? Three steps and
-you're running. No cluster yet? See {ref}`dont-have-a-cluster-yet-crc`.
+you're running. No cluster yet? See [local CRC setup](development.md#local-cluster-with-crc).
 
 ## Install the operator
 
 **Operators → OperatorHub**, search **"OpenStack Lightspeed
 (Community)"**, click **Install**. Currently published for OpenShift 4.16
 and 4.18 — on other versions, or if it's not showing up, see
-{doc}`install_guide` for the source-based alternative.
+[Installation Guide](install_guide.md) for the source-based alternative.
 
 ## Create the secret and CR
 
@@ -26,7 +26,7 @@ stringData:
 ```
 
 Save as `cr.yaml`, with your own endpoint, model, and provider type
-(see {ref}`supported-providers` for valid values):
+(see [supported providers](configuration.md#supported-providers) for valid values):
 
 ```yaml
 apiVersion: lightspeed.openstack.org/v1beta1
@@ -49,7 +49,7 @@ oc apply -f cr.yaml
 ```
 
 Self-hosted endpoint with a self-signed certificate? See
-{doc}`install_guide` and {doc}`configuration` for the full field
+[Installation Guide](install_guide.md) and [Configuration](configuration.md) for the full field
 reference.
 
 ## Open the console
