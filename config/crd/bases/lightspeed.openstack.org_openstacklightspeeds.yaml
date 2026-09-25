@@ -404,8 +404,8 @@ spec:
                 description: OGX configures the OGX container.
                 properties:
                   containerImage:
-                    description: ContainerImage overrides the OGX/llama-stack container
-                      image. When unset, the operator default is used.
+                    description: ContainerImage overrides the OGX container image.
+                      When unset, the operator default is used.
                     type: string
                   logLevel:
                     default: all=info

@@ -46,7 +46,7 @@ func (instance *OpenStackLightspeed) RAGContainerImage() string {
 	return resolveContainerImage(manifestImage, OpenStackLightspeedDefaultValues.RAGImageURL)
 }
 
-// OGXContainerImage returns the OGX/llama-stack container image for this instance.
+// OGXContainerImage returns the OGX container image for this instance.
 func (instance *OpenStackLightspeed) OGXContainerImage() string {
 	manifestImage := ""
 	if instance.Spec.OGX != nil {

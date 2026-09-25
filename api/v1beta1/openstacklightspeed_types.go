@@ -32,7 +32,7 @@ const (
 	// LCoreContainerImage is the fall-back container image for LCore
 	LCoreContainerImage = "quay.io/lightspeed-core/lightspeed-stack:dev-latest"
 
-	// OGXContainerImage is the fall-back container image for OGX/llama-stack
+	// OGXContainerImage is the fall-back container image for OGX.
 	OGXContainerImage = LCoreContainerImage
 
 	// ExporterContainerImage is the fall-back container image for the Dataverse Exporter
@@ -129,7 +129,7 @@ type OGXSpec struct {
 	LogLevel string `json:"logLevel,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// ContainerImage overrides the OGX/llama-stack container image. When unset, the operator default is used.
+	// ContainerImage overrides the OGX container image. When unset, the operator default is used.
 	ContainerImage string `json:"containerImage,omitempty"`
 }
 

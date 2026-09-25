@@ -27,7 +27,7 @@ spec:
   #       memory: "2Gi"
   #   logLevel: "INFO"
   #   containerImage: quay.io/sclorg/postgresql-16-c10s:latest
-  # Uncomment to customize OGX/llama-stack container resources and log level:
+  # Uncomment to customize OGX container resources and log level:
   # ogx:
   #   resources:
   #     requests:
