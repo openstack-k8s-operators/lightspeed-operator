@@ -1,0 +1,45 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+collectors:
+  - type: command
+    command: ../../common/collectors/collect-workload-diagnostics.sh
+timeout: 120
+commands:
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+
+      NS=openstack-lightspeed
+      CR=openstack-lightspeed-duplicate
+      EXPECTED="OpenStack Lightspeed not started because there is an already existing instance."
+
+      STATUS=$(oc get openstacklightspeed "$CR" -n "$NS" \
+        -o jsonpath='{.status.conditions[?(@.type=="OpenStackLightspeedReady")].status}' \
+        2>/dev/null || true)
+      if [ "$STATUS" != "False" ]; then
+        echo "ERROR: expected OpenStackLightspeedReady=False on duplicate, got '${STATUS}'"
+        oc get openstacklightspeed "$CR" -n "$NS" -o yaml
+        exit 1
+      fi
+
+      MSG=$(oc get openstacklightspeed "$CR" -n "$NS" \
+        -o jsonpath='{.status.conditions[?(@.type=="OpenStackLightspeedReady")].message}' \
+        2>/dev/null || true)
+      if [ "$MSG" != "$EXPECTED" ]; then
+        echo "ERROR: unexpected duplicate message"
+        echo "  expected: ${EXPECTED}"
+        echo "  got:      ${MSG}"
+        oc get openstacklightspeed "$CR" -n "$NS" -o yaml
+        exit 1
+      fi
+
+      # A duplicate must never hold a finalizer, or a cache-lag race could let
+      # it run reconcileDelete and remove the primary's shared resources.
+      FINALIZERS=$(oc get openstacklightspeed "$CR" -n "$NS" \
+        -o jsonpath='{.metadata.finalizers}' 2>/dev/null || true)
+      if [ -n "$FINALIZERS" ] && [ "$FINALIZERS" != "[]" ]; then
+        echo "ERROR: duplicate instance unexpectedly holds a finalizer: ${FINALIZERS}"
+        oc get openstacklightspeed "$CR" -n "$NS" -o yaml
+        exit 1
+      fi

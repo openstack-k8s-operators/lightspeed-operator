@@ -1,0 +1,16 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+delete:
+  - apiVersion: lightspeed.openstack.org/v1beta1
+    kind: OpenStackLightspeed
+    name: openstack-lightspeed-duplicate
+    namespace: openstack-lightspeed
+  - apiVersion: lightspeed.openstack.org/v1beta1
+    kind: OpenStackLightspeed
+    name: openstack-lightspeed
+    namespace: openstack-lightspeed
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    name: openstack-lightspeed-database
+    namespace: openstack-lightspeed

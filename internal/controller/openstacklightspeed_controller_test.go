@@ -19,11 +19,16 @@ package controller
 import (
 	"context"
 	"sync/atomic"
+	"testing"
+	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -93,3 +98,103 @@ var _ = ginkgo.Describe("OpenStackLightspeed Controller", func() {
 		})
 	})
 })
+
+func newSingletonScheme(t *testing.T) *runtime.Scheme {
+	t.Helper()
+	scheme := runtime.NewScheme()
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("failed to add corev1 to scheme: %v", err)
+	}
+	if err := apiv1beta1.AddToScheme(scheme); err != nil {
+		t.Fatalf("failed to add apiv1beta1 to scheme: %v", err)
+	}
+	return scheme
+}
+
+func newLightspeed(name, namespace string, created time.Time) *apiv1beta1.OpenStackLightspeed {
+	return &apiv1beta1.OpenStackLightspeed{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              name,
+			Namespace:         namespace,
+			UID:               types.UID(namespace + "/" + name),
+			CreationTimestamp: metav1.NewTime(created),
+		},
+	}
+}
+
+func TestTakesPrecedence(t *testing.T) {
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	older := newLightspeed("b-older", "ns", base)
+	newer := newLightspeed("a-newer", "ns", base.Add(time.Minute))
+
+	if !takesPrecedence(older, newer) {
+		t.Errorf("expected older instance to take precedence over newer one")
+	}
+	if takesPrecedence(newer, older) {
+		t.Errorf("expected newer instance to NOT take precedence over older one")
+	}
+
+	// Equal timestamps: the lexicographically smaller name wins the tie.
+	sameA := newLightspeed("aaa", "ns", base)
+	sameB := newLightspeed("bbb", "ns", base)
+	if !takesPrecedence(sameA, sameB) {
+		t.Errorf("expected name tie-break: aaa should take precedence over bbb")
+	}
+	if takesPrecedence(sameB, sameA) {
+		t.Errorf("expected name tie-break: bbb should NOT take precedence over aaa")
+	}
+}
+
+func TestIsPrimaryInstance(t *testing.T) {
+	scheme := newSingletonScheme(t)
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	primary := newLightspeed("primary", "ns", base)
+	duplicate := newLightspeed("duplicate", "ns", base.Add(time.Minute))
+	// An instance in a different namespace must not affect the decision.
+	otherNS := newLightspeed("primary", "other-ns", base.Add(-time.Hour))
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(primary, duplicate, otherNS).
+		Build()
+
+	r := &OpenStackLightspeedReconciler{Client: fakeClient, Scheme: scheme}
+	ctx := context.Background()
+
+	isPrimary, err := r.isPrimaryInstance(ctx, primary)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !isPrimary {
+		t.Errorf("expected the oldest instance to be primary")
+	}
+
+	isPrimary, err = r.isPrimaryInstance(ctx, duplicate)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if isPrimary {
+		t.Errorf("expected the newer instance to be a duplicate, not primary")
+	}
+}
+
+func TestIsPrimaryInstance_SingleInstance(t *testing.T) {
+	scheme := newSingletonScheme(t)
+	only := newLightspeed("only", "ns", time.Now())
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(only).
+		Build()
+
+	r := &OpenStackLightspeedReconciler{Client: fakeClient, Scheme: scheme}
+
+	isPrimary, err := r.isPrimaryInstance(context.Background(), only)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !isPrimary {
+		t.Errorf("expected a lone instance to be primary")
+	}
+}

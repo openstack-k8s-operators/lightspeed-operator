@@ -140,6 +140,11 @@ func (r *OpenStackLightspeedReconciler) Reconcile(ctx context.Context, req ctrl.
 	// when a condition's state doesn't change.
 	savedConditions := instance.Status.Conditions.DeepCopy()
 
+	// duplicate is set to true when this instance is not the primary
+	// OpenStackLightspeed in its namespace. Duplicates are left inactive and
+	// must not trigger the periodic poll requeue below.
+	duplicate := false
+
 	// Always patch the instance status when exiting this function so we can persist any changes.
 	defer func() {
 		// Don't update the status, if reconciler Panics
@@ -171,7 +176,7 @@ func (r *OpenStackLightspeedReconciler) Reconcile(ctx context.Context, req ctrl.
 		// rhoso_mcps is enabled — the cache-based watch only covers
 		// the operator namespace, so polling detects cross-namespace
 		// OpenStackControlPlane changes (readiness, CA rotations, etc.).
-		if result.RequeueAfter == 0 {
+		if !duplicate && result.RequeueAfter == 0 {
 			needsPoll := false
 			for _, seen := range r.DynamicWatchCRD {
 				if !seen.Load() {
@@ -205,6 +210,31 @@ func (r *OpenStackLightspeedReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	instance.Status.Conditions.Init(&cl)
 	instance.Status.ObservedGeneration = instance.Generation
+
+	// Only a single OpenStackLightspeed per namespace is supported. If another
+	// instance already exists and takes precedence, mark this one as a duplicate
+	// and stop reconciling: don't add a finalizer, create resources, or requeue.
+	// This keeps the duplicate inactive with a clear status message instead of
+	// racing the primary instance over the shared, fixed-named resources.
+	// A duplicate must never run reconcileDelete either, or it would tear down
+	// resources still in use by the primary; if it somehow holds a finalizer,
+	// just drop it (a no-op otherwise) without touching shared resources.
+	primary, err := r.isPrimaryInstance(ctx, instance)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !primary {
+		duplicate = true
+		controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
+		Log.Info("Another OpenStackLightspeed already exists; marking this instance as a duplicate")
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			apiv1beta1.OpenStackLightspeedReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityError,
+			apiv1beta1.OpenStackLightspeedDuplicateInstanceMessage,
+		))
+		return ctrl.Result{}, nil
+	}
 
 	if !instance.DeletionTimestamp.IsZero() {
 		if err := r.reconcileDelete(ctx, helper, instance); err != nil {
@@ -521,4 +551,40 @@ func (r *OpenStackLightspeedReconciler) WatchDynamicCRD(
 	}
 
 	return nil
+}
+
+// isPrimaryInstance reports whether the given OpenStackLightspeed is the primary
+// (active) instance in its namespace. Only one instance per namespace is
+// supported, so the oldest instance wins; ties on creation timestamp are broken
+// by name for determinism.
+func (r *OpenStackLightspeedReconciler) isPrimaryInstance(
+	ctx context.Context,
+	instance *apiv1beta1.OpenStackLightspeed,
+) (bool, error) {
+	var lightspeedList apiv1beta1.OpenStackLightspeedList
+	if err := r.List(ctx, &lightspeedList, client.InNamespace(instance.Namespace)); err != nil {
+		return false, err
+	}
+
+	for i := range lightspeedList.Items {
+		other := &lightspeedList.Items[i]
+		if other.UID == instance.UID {
+			continue
+		}
+		if takesPrecedence(other, instance) {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
+// takesPrecedence reports whether a should be the primary instance over b.
+// The oldest instance wins; when creation timestamps are equal the name breaks
+// the tie (names are unique within a namespace, so the result is deterministic).
+func takesPrecedence(a, b *apiv1beta1.OpenStackLightspeed) bool {
+	if !a.CreationTimestamp.Equal(&b.CreationTimestamp) {
+		return a.CreationTimestamp.Before(&b.CreationTimestamp)
+	}
+	return a.Name < b.Name
 }

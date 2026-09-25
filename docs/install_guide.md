@@ -146,6 +146,10 @@ spec:
 This deploys the full stack: the AI engine (lightspeed-stack and
 OGX), PostgreSQL, OKP, and the console plugin.
 
+> [!NOTE]
+> A single OpenStackLightspeed instance is supported
+> in the openstack-lightspeed namespace.
+
 ## Verifying the deployment
 
 ```bash
