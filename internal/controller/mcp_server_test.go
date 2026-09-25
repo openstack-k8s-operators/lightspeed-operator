@@ -25,7 +25,7 @@ import (
 )
 
 func TestBuildMCPServerConfigData_OpenStackNotReady(t *testing.T) {
-	result, err := buildMCPServerConfigData(false, "")
+	result, err := buildMCPServerConfigData(false, "", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -38,7 +38,7 @@ func TestBuildMCPServerConfigData_OpenStackNotReady(t *testing.T) {
 }
 
 func TestBuildMCPServerConfigData_OpenStackReady(t *testing.T) {
-	result, err := buildMCPServerConfigData(true, "")
+	result, err := buildMCPServerConfigData(true, "", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -58,7 +58,7 @@ openstack:
 openshift:
   enabled: false
 `
-	result, err := buildMCPServerConfigData(false, customConfig)
+	result, err := buildMCPServerConfigData(false, customConfig, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestBuildMCPServerConfigData_CustomConfig_DeepMergesWithDefaults(t *testing
 debug: true
 workers: 4
 `
-	result, err := buildMCPServerConfigData(false, customConfig)
+	result, err := buildMCPServerConfigData(false, customConfig, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -119,7 +119,7 @@ custom_section:
   key1: value1
   key2: 42
 `
-	result, err := buildMCPServerConfigData(true, customConfig)
+	result, err := buildMCPServerConfigData(true, customConfig, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -139,9 +139,71 @@ custom_section:
 }
 
 func TestBuildMCPServerConfigData_CustomConfig_InvalidYAML(t *testing.T) {
-	_, err := buildMCPServerConfigData(false, "not: valid: yaml: [")
+	_, err := buildMCPServerConfigData(false, "not: valid: yaml: [", nil)
 	if err == nil {
 		t.Error("expected error for invalid YAML")
+	}
+}
+
+func TestBuildMCPServerConfigData_PrometheusUnset(t *testing.T) {
+	result, err := buildMCPServerConfigData(true, "", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if strings.Contains(result, "prometheus:") {
+		t.Error("expected no prometheus section when MetricStorage is not detected")
+	}
+}
+
+func TestBuildMCPServerConfigData_PrometheusWithoutTLS(t *testing.T) {
+	result, err := buildMCPServerConfigData(true, "", &prometheusParams{
+		Host: "metric-storage-prometheus.openstack.svc",
+		Port: 9090,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := yaml.Unmarshal([]byte(result), &parsed); err != nil {
+		t.Fatalf("failed to parse result: %v", err)
+	}
+
+	osSection := parsed["openstack"].(map[string]interface{})
+	promSection, ok := osSection["prometheus"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected openstack.prometheus section, got %v", osSection)
+	}
+	if promSection["host"] != "metric-storage-prometheus.openstack.svc" {
+		t.Errorf("expected prometheus.host set, got %v", promSection["host"])
+	}
+	if promSection["port"] != float64(9090) {
+		t.Errorf("expected prometheus.port=9090, got %v", promSection["port"])
+	}
+	if _, hasCA := promSection["ca_cert"]; hasCA {
+		t.Errorf("expected no prometheus.ca_cert when TLS is not enabled, got %v", promSection["ca_cert"])
+	}
+}
+
+func TestBuildMCPServerConfigData_PrometheusWithTLS(t *testing.T) {
+	result, err := buildMCPServerConfigData(true, "", &prometheusParams{
+		Host:       "metric-storage-prometheus.openstack.svc",
+		Port:       9090,
+		CACertPath: "./tls-ca-bundle.pem",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := yaml.Unmarshal([]byte(result), &parsed); err != nil {
+		t.Fatalf("failed to parse result: %v", err)
+	}
+
+	osSection := parsed["openstack"].(map[string]interface{})
+	promSection := osSection["prometheus"].(map[string]interface{})
+	if promSection["ca_cert"] != "./tls-ca-bundle.pem" {
+		t.Errorf("expected prometheus.ca_cert set when TLS is enabled, got %v", promSection["ca_cert"])
 	}
 }
 

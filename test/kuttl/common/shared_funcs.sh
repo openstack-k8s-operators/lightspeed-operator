@@ -22,6 +22,24 @@ assert_mcp_openstack_enabled() {
   fi
 }
 
+assert_mcp_prometheus_config() {
+  local expected_host="$1"
+  local expected_port="$2"
+  local mcp_data
+  mcp_data=$(oc get configmap mcp-config -n "$NAMESPACE" \
+    -o jsonpath='{.data.config\.yaml}')
+  if ! echo "$mcp_data" | grep -q "host: ${expected_host}"; then
+    echo "ERROR: Expected MCP prometheus host ${expected_host} not found"
+    echo "$mcp_data"
+    exit 1
+  fi
+  if ! echo "$mcp_data" | grep -q "port: ${expected_port}"; then
+    echo "ERROR: Expected MCP prometheus port ${expected_port} not found"
+    echo "$mcp_data"
+    exit 1
+  fi
+}
+
 assert_openstack_ready() {
   local expected="$1"
   local ready

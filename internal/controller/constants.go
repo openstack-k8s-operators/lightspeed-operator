@@ -224,6 +224,17 @@ const (
 
 	// ---------------------------------------------------------------------------
 
+	// -- Telemetry / Metric Storage ---------------------------------------------
+
+	// MetricStorageKind is the Kind of the telemetry MetricStorage CR. The Group
+	// and Version come from telemetryv1.GroupVersion (imported from
+	// telemetry-operator/api), and the well-known name/port come from
+	// telemetryv1.DefaultServiceName/DefaultPrometheusPort (telemetry_consts.go)
+	// so they can't drift from the source of truth.
+	MetricStorageKind = "MetricStorage"
+
+	// ---------------------------------------------------------------------------
+
 	// -- Keystone Application Credential ----------------------------------------
 
 	KeystoneApplicationCredentialGroup   = "keystone.openstack.org"

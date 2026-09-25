@@ -13,6 +13,16 @@ openstack:
   allow_write: false
   ca_cert: ./tls-ca-bundle.pem
   insecure: false
+{{- if .Prometheus }}
+  # RHOSO 18: metric-storage is not in the Keystone catalog, so point the
+  # observabilityclient at Aetos/Prometheus explicitly. Removed on RHOSO 19+.
+  prometheus:
+    host: {{ .Prometheus.Host }}
+    port: {{ .Prometheus.Port }}
+{{- if .Prometheus.CACertPath }}
+    ca_cert: {{ .Prometheus.CACertPath }}
+{{- end }}
+{{- end }}
 
 openshift:
   enabled: {{ .OpenShiftEnabled }}

@@ -338,5 +338,6 @@ func getDynamicWatchCRDs() map[schema.GroupVersionKind]*atomic.Bool {
 			Version: "v1beta1",
 			Kind:    "KeystoneApplicationCredential",
 		}: new(atomic.Bool),
+		controller.MetricStorageGVK(): new(atomic.Bool),
 	}
 }

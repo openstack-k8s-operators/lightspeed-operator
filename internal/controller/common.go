@@ -30,6 +30,7 @@ import (
 	common_helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	common_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
+	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -315,6 +316,11 @@ func KeystoneApplicationCredentialGVK() schema.GroupVersionKind {
 		Version: KeystoneApplicationCredentialVersion,
 		Kind:    KeystoneApplicationCredentialKind,
 	}
+}
+
+// MetricStorageGVK returns the GroupVersionKind for the telemetry MetricStorage CR.
+func MetricStorageGVK() schema.GroupVersionKind {
+	return telemetryv1.GroupVersion.WithKind(MetricStorageKind)
 }
 
 // IsDynamicCRDWatched reports whether a controller-runtime watch is currently

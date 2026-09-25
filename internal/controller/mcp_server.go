@@ -32,8 +32,10 @@ import (
 	common_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	openstack_lib "github.com/openstack-k8s-operators/lib-common/modules/openstack"
 	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
+	telemetryv1 "github.com/openstack-k8s-operators/telemetry-operator/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	uns "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
@@ -75,6 +77,22 @@ var mcpServerConfigTmpl = template.Must(template.New("mcp-config").Parse(mcpServ
 type mcpServerConfigParams struct {
 	OpenStackEnabled bool
 	OpenShiftEnabled bool
+	// Prometheus is non-nil when a telemetry MetricStorage exists and the MCP
+	// server should be told how to reach Aetos/Prometheus explicitly (RHOSO 18,
+	// where metric-storage is not in the Keystone catalog).
+	Prometheus *prometheusParams
+}
+
+// prometheusParams holds the Aetos/Prometheus (metric-storage) connection
+// details rendered into the MCP server config. Needed on RHOSO 18, where the
+// metric-storage service is not registered in the Keystone catalog and so the
+// observabilityclient cannot auto-discover it. On RHOSO 19+ the client
+// discovers the endpoint from Keystone and this is no longer set.
+type prometheusParams struct {
+	Host string
+	Port int
+	// CACertPath is set only when Prometheus TLS is enabled; empty otherwise.
+	CACertPath string
 }
 
 // deepMerge recursively merges override into base. When both sides have a map
@@ -99,11 +117,12 @@ func deepMerge(base, override map[string]interface{}) map[string]interface{} {
 // buildMCPServerConfigData renders the MCP server config template and, when
 // rhosMCP is provided, deep-merges the user config on top. The
 // openstack.enabled and openshift.enabled flags are always enforced.
-func buildMCPServerConfigData(openStackReady bool, rhosMCP string) (string, error) {
+func buildMCPServerConfigData(openStackReady bool, rhosMCP string, prometheus *prometheusParams) (string, error) {
 	var buf bytes.Buffer
 	err := mcpServerConfigTmpl.Execute(&buf, mcpServerConfigParams{
 		OpenStackEnabled: openStackReady,
 		OpenShiftEnabled: true,
+		Prometheus:       prometheus,
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to render MCP server config template: %w", err)
@@ -150,13 +169,14 @@ func buildMCPServerConfigData(openStackReady bool, rhosMCP string) (string, erro
 func BuildMCPServerConfigMap(
 	instance *apiv1beta1.OpenStackLightspeed,
 	openStackReady bool,
+	prometheus *prometheusParams,
 ) (corev1.ConfigMap, error) {
 	devConfig, _ := instance.ParseDevConfig()
 	rhosMCPConfigYAML := ""
 	if devConfig.RhosMCP != nil {
 		rhosMCPConfigYAML = devConfig.RhosMCP.Config
 	}
-	configData, err := buildMCPServerConfigData(openStackReady, rhosMCPConfigYAML)
+	configData, err := buildMCPServerConfigData(openStackReady, rhosMCPConfigYAML, prometheus)
 	if err != nil {
 		return corev1.ConfigMap{}, err
 	}
@@ -231,7 +251,7 @@ func (r *OpenStackLightspeedReconciler) ReconcileMCPServer(
 
 	if !crdReady {
 		helper.GetLogger().Info("OpenStackControlPlane CRD not available, deploying MCP server without OpenStack resources")
-		return false, r.reconcileMCPServerDeploy(ctx, helper, instance, false)
+		return false, r.reconcileMCPServerDeploy(ctx, helper, instance, false, nil)
 	}
 
 	// The watch is registered, but the CRD may have been removed since.
@@ -241,7 +261,7 @@ func (r *OpenStackLightspeedReconciler) ReconcileMCPServer(
 	}
 	if !crdEstablished {
 		helper.GetLogger().Info("OpenStackControlPlane CRD was removed, deploying MCP server without OpenStack resources")
-		return false, r.reconcileMCPServerDeploy(ctx, helper, instance, false)
+		return false, r.reconcileMCPServerDeploy(ctx, helper, instance, false, nil)
 	}
 
 	openStackControlPlaneList, err := r.listOpenStackControlPlanes(ctx, helper)
@@ -252,7 +272,7 @@ func (r *OpenStackLightspeedReconciler) ReconcileMCPServer(
 	switch l := len(openStackControlPlaneList.Items); l {
 	case 0:
 		helper.GetLogger().Info("No OpenStackControlPlane found, deploying MCP server without OpenStack resources")
-		return false, r.reconcileMCPServerDeploy(ctx, helper, instance, false)
+		return false, r.reconcileMCPServerDeploy(ctx, helper, instance, false, nil)
 
 	case 1:
 		oscp := &openStackControlPlaneList.Items[0]
@@ -780,14 +800,14 @@ func (r *OpenStackLightspeedReconciler) reconcileMCPServerWithOpenStack(
 	}
 	if !fieldsReady {
 		log.Info("OpenStackControlPlane fields not ready, deploying MCP without OpenStack")
-		return false, r.reconcileMCPServerDeploy(ctx, helper, instance, false)
+		return false, r.reconcileMCPServerDeploy(ctx, helper, instance, false, nil)
 	}
 
 	caPEM, err := readCABundle(ctx, helper, oscp)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			log.Info("CA bundle not found, deploying MCP without OpenStack")
-			return false, r.reconcileMCPServerDeploy(ctx, helper, instance, false)
+			return false, r.reconcileMCPServerDeploy(ctx, helper, instance, false, nil)
 		}
 		return false, err
 	}
@@ -824,7 +844,7 @@ func (r *OpenStackLightspeedReconciler) reconcileMCPServerWithOpenStack(
 			condition.SeverityInfo,
 			apiv1beta1.OpenStackLightspeedMCPServerWaitingAC,
 		))
-		return false, r.reconcileMCPServerDeploy(ctx, helper, instance, false)
+		return false, r.reconcileMCPServerDeploy(ctx, helper, instance, false, nil)
 	}
 
 	if err := copyCABundle(ctx, helper, instance, oscp); err != nil {
@@ -835,12 +855,66 @@ func (r *OpenStackLightspeedReconciler) reconcileMCPServerWithOpenStack(
 		return false, err
 	}
 
-	if err := r.reconcileMCPServerDeploy(ctx, helper, instance, true); err != nil {
+	// RHOSO 18: metric-storage is not in the Keystone catalog, so the MCP
+	// server can't auto-discover Aetos/Prometheus. When a MetricStorage exists
+	// in the OSCP namespace, pass its connection details through so metric
+	// commands work; otherwise leave it unset so the MCP server reports a clear
+	// "metric-storage not configured" error instead of a discovery failure.
+	prometheus, err := r.detectPrometheusConfig(ctx, helper, oscpNS)
+	if err != nil {
+		return false, err
+	}
+
+	if err := r.reconcileMCPServerDeploy(ctx, helper, instance, true, prometheus); err != nil {
 		return false, err
 	}
 
 	log.Info("MCP server reconciled with application credentials")
 	return true, nil
+}
+
+// detectPrometheusConfig returns the Aetos/Prometheus (metric-storage)
+// connection params for the MCP server when a telemetry MetricStorage exists in
+// the OSCP namespace. It returns (nil, nil) when metric-storage — or the
+// telemetry CRD itself — is not present, so nothing is configured and the MCP
+// server can surface a clear error rather than point at a non-existent host.
+func (r *OpenStackLightspeedReconciler) detectPrometheusConfig(
+	ctx context.Context,
+	helper *common_helper.Helper,
+	oscpNamespace string,
+) (*prometheusParams, error) {
+	rawClient, err := getRawClient(helper)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get raw client for MetricStorage lookup: %w", err)
+	}
+
+	ms := &uns.Unstructured{}
+	ms.SetGroupVersionKind(MetricStorageGVK())
+	err = rawClient.Get(ctx, types.NamespacedName{
+		Name:      telemetryv1.DefaultServiceName,
+		Namespace: oscpNamespace,
+	}, ms)
+	if err != nil {
+		// MetricStorage CR absent, or telemetry CRD not installed at all.
+		if k8s_errors.IsNotFound(err) || meta.IsNoMatchError(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to check for MetricStorage: %w", err)
+	}
+
+	params := &prometheusParams{
+		Host: fmt.Sprintf("%s-prometheus.%s.svc", telemetryv1.DefaultServiceName, oscpNamespace),
+		Port: telemetryv1.DefaultPrometheusPort,
+	}
+
+	// Prometheus TLS is enabled when spec.prometheusTls.secretName is set
+	// (lib-common tls.SimpleService.Enabled()). The CA bundle is already mounted
+	// at ./tls-ca-bundle.pem (the sidecar's working directory is /app).
+	if secretName, _, _ := uns.NestedString(ms.Object, "spec", "prometheusTls", "secretName"); secretName != "" {
+		params.CACertPath = "./tls-ca-bundle.pem"
+	}
+
+	return params, nil
 }
 
 // reconcileMCPServerDeploy ensures the MCP server ConfigMap exists.
@@ -849,6 +923,7 @@ func (r *OpenStackLightspeedReconciler) reconcileMCPServerDeploy(
 	helper *common_helper.Helper,
 	instance *apiv1beta1.OpenStackLightspeed,
 	openStackReady bool,
+	prometheus *prometheusParams,
 ) error {
 	configYAMLConfigMap := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -857,7 +932,7 @@ func (r *OpenStackLightspeedReconciler) reconcileMCPServerDeploy(
 		},
 	}
 	_, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), &configYAMLConfigMap, func() error {
-		built, err := BuildMCPServerConfigMap(instance, openStackReady)
+		built, err := BuildMCPServerConfigMap(instance, openStackReady, prometheus)
 		if err != nil {
 			return err
 		}

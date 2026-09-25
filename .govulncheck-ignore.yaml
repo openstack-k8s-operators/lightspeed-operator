@@ -11,6 +11,34 @@
 govulncheck_ignore_list_expiry_date: "2026-11-13"
 
 ignored_vulnerabilities:
+  - id: GO-2025-4125
+    module: github.com/rhobs/observability-operator
+    reason: |
+      The CVE is an incorrect-privilege-assignment bug in observability-operator's
+      own MonitorStack reconciler/admission logic. We never run that controller or
+      its webhooks; we only pull in this module transitively because
+      telemetry-operator/api embeds its MonitoringStackSpec type as an optional
+      field on MetricStorageSpec. Every reported call path here is generated
+      boilerplate (DeepCopy/DeepCopyInto/DeepCopyObject, scheme registration
+      init()) reached while copying/registering our own OpenStackLightspeed and
+      MetricStorage types — plain struct copying, not the vulnerable
+      privilege-assignment code path.
+    traces:
+      - >-
+        "#1: internal/controller/common.go:33:2: init calls
+        telemetry-operator/api/v1beta1.init, which calls
+        observability-operator/pkg/apis/monitoring/v1alpha1.init"
+      - >-
+        "#2: api/v1beta1/zz_generated.deepcopy.go:332:21:
+        OpenStackLightspeedSpec.DeepCopyInto calls runtime.RawExtension.DeepCopyInto,
+        which eventually calls MonitoringStack.DeepCopyObject /
+        MonitoringStackList.DeepCopyObject / ThanosQuerier.DeepCopyObject /
+        ThanosQuerierList.DeepCopyObject"
+      - >-
+        "#3: telemetry-operator/api/v1beta1/zz_generated.deepcopy.go:1457:22:
+        MetricStorage.DeepCopyObject calls MetricStorageSpec.DeepCopyInto, which
+        eventually calls MonitoringStackSpec.DeepCopyInto"
+
   - id: GO-2026-5037
     module: stdlib
     reason: |
