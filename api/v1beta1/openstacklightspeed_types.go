@@ -67,12 +67,33 @@ const (
 //   - okpChunkFilterQuery: Solr filter query for OKP searches (default: version-aware query combining detected OpenStack and OCP versions)
 //   - okpRagOnly: when true, only OKP is used as a RAG source (default: true)
 //   - rhosMCP: configuration for the rhos-mcps sidecar (resources, container image override, and custom YAML config); config is deep-merged on top of the operator defaults, openstack.enabled and openshift.enabled are always overridden by the operator
+//   - additionalMCPServers: extra MCP servers to add to the lightspeed-stack mcp_servers config, independent of the rhoso_mcps feature flag
 type DevSpec struct {
 	FeatureFlags        []string `json:"featureFlags,omitempty"`
 	OKPChunkFilterQuery string   `json:"okpChunkFilterQuery,omitempty"`
 	OKPRagOnly          *bool    `json:"okpRagOnly,omitempty"`
 	// rhosMCP configures the rhos-mcps sidecar container (only used when the rhoso_mcps feature flag is enabled).
 	RhosMCP *RhosMCPSpec `json:"rhosMCP,omitempty"`
+	// additionalMCPServers lists extra MCP servers to append to the lightspeed-stack
+	// mcp_servers config, on top of whatever rhoso_mcps already contributes (if enabled).
+	// Experimental: for testing arbitrary in-cluster MCP servers (e.g. korrel8r) that the
+	// operator does not manage itself.
+	AdditionalMCPServers []MCPServerEntry `json:"additionalMCPServers,omitempty"`
+}
+
+// MCPServerEntry describes one extra MCP server to add to the lightspeed-stack
+// mcp_servers config. Mirrors the upstream lightspeed-stack mcp_servers entry shape
+// (name/url/authorization_headers) so it can carry whatever auth convention the target
+// server expects, rather than assuming a single fixed header/mode.
+type MCPServerEntry struct {
+	// Name identifies the MCP server in the lightspeed-stack config.
+	Name string `json:"name"`
+	// URL is the MCP server's streamable-HTTP endpoint.
+	URL string `json:"url"`
+	// AuthorizationHeaders maps header name to auth mode (e.g. "kubernetes"), matching
+	// lightspeed-stack's own authorization_headers schema. Optional: omit for servers
+	// that don't require authorization headers.
+	AuthorizationHeaders map[string]string `json:"authorizationHeaders,omitempty"`
 }
 
 // RhosMCPSpec defines configuration for the rhos-mcps sidecar container.

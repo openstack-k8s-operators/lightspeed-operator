@@ -323,15 +323,49 @@ func buildLCoreMCPServersConfig(openStackReady bool) []interface{} {
 	return mcpServers
 }
 
+// buildAdditionalMCPServersConfig converts dev.additionalMCPServers entries into the
+// mcp_servers shape lightspeed-stack expects. Independent of the rhoso_mcps feature flag,
+// since these are arbitrary externally-managed MCP servers (e.g. korrel8r), not the
+// operator-managed rhos-mcps sidecar.
+func buildAdditionalMCPServersConfig(entries []apiv1beta1.MCPServerEntry) []interface{} {
+	servers := make([]interface{}, 0, len(entries))
+	for _, entry := range entries {
+		server := map[string]interface{}{
+			"name": entry.Name,
+			"url":  entry.URL,
+		}
+		if len(entry.AuthorizationHeaders) > 0 {
+			headers := make(map[string]interface{}, len(entry.AuthorizationHeaders))
+			for header, mode := range entry.AuthorizationHeaders {
+				headers[header] = mode
+			}
+			server["authorization_headers"] = headers
+		}
+		servers = append(servers, server)
+	}
+	return servers
+}
+
 func buildLCoreMCPServersConfigIfEnabled(instance *apiv1beta1.OpenStackLightspeed) ([]interface{}, error) {
-	enabled, err := isRHOSOMCPEnabled(instance)
+	devConfig, err := instance.ParseDevConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse dev config: %w", err)
 	}
-	if !enabled {
-		return []interface{}{}, nil
+
+	rhosoMCPEnabled, err := isRHOSOMCPEnabled(instance)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse dev config: %w", err)
 	}
-	return buildLCoreMCPServersConfig(instance.Status.OpenStackReady), nil
+
+	mcpServers := []interface{}{}
+
+	if rhosoMCPEnabled {
+		mcpServers = append(mcpServers, buildLCoreMCPServersConfig(instance.Status.OpenStackReady)...)
+	}
+
+	mcpServers = append(mcpServers, buildAdditionalMCPServersConfig(devConfig.AdditionalMCPServers)...)
+
+	return mcpServers, nil
 }
 
 // buildLCoreConfigYAML assembles the complete Lightspeed Core Service configuration and converts to YAML.
