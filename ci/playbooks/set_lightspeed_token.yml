@@ -1,0 +1,45 @@
+---
+# Deliver the Lightspeed API token to the ci-framework hook via a parameters
+# file, resolved from the encrypted Zuul secret.
+#
+# Why a file (and not a job var, a set_fact, or a direct k8s create)?
+#   * Job var  "{{ openai_credentials.api_token }}" -> fails when cifmw_setup
+#     serializes ci_framework_params with to_nice_yaml ("openai_credentials is
+#     undefined"): Zuul secrets are not in the inventory/hostvars scope.
+#   * set_fact cacheable -> does not survive the Zuul pre-run -> run playbook
+#     boundary (no persistent fact cache), so it never reaches the run.
+#   * Creating the k8s Secret directly here -> impossible: the cluster does not
+#     exist yet at pre-run time (kube-config missing -> "No configuration found").
+#
+# ci-framework's run_hook loads every *.yml in
+# {{ cifmw_basedir }}/artifacts/parameters/ as "-e @file" extra-vars for each
+# hook (roles/run_hook/tasks/playbook.yml). By writing the *rendered* token
+# there now (openai_credentials IS in scope at pre-run), the install hook
+# receives cifmw_openstack_lightspeed_api_token as a concrete value during the
+# run and creates the LLM credentials Secret in-cluster. The file persists on
+# disk across the playbook boundary, and the token never flows through the
+# cifmw_setup bootstrap serialization.
+- name: Stage the Lightspeed API token as a ci-framework parameters file
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars:
+    cifmw_basedir: "{{ cifmw_basedir | default(ansible_user_dir ~ '/ci-framework-data') }}"
+    _params_dir: "{{ cifmw_basedir }}/artifacts/parameters"
+  tasks:
+    - name: Ensure the ci-framework parameters directory exists
+      ansible.builtin.file:
+        path: "{{ _params_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Write the Lightspeed API token parameters file
+      ansible.builtin.copy:
+        dest: "{{ _params_dir }}/lightspeed-token.yml"
+        mode: "0600"
+        content: >-
+          {{
+            {'cifmw_openstack_lightspeed_api_token': openai_credentials.api_token}
+            | to_nice_yaml
+          }}
+      no_log: true
