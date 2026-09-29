@@ -13,16 +13,16 @@
     secrets:
       - name: openai_credentials
         secret: lightspeed-openai-token
-    # Stage the encrypted secret into a ci-framework parameters file before the
-    # run. run_hook loads every artifacts/parameters/*.yml as extra-vars for each
-    # hook, so the install hook receives cifmw_openstack_lightspeed_api_token as
-    # a concrete value and creates the Secret in-cluster during the run. See the
-    # playbook header for why a job var / set_fact / direct k8s create all fail.
-    pre-run: ci/playbooks/set_lightspeed_token.yml
-    # Delete the token parameters file after the run (even on cancel) so it is not
-    # left on disk to be collected into build logs/artifacts.
+    # Create the LLM API token Secret in-cluster from the encrypted Zuul secret
+    # before the run. With cifmw_openstack_lightspeed_api_token left undefined
+    # (see below), the install hook takes its "verify secret exists" branch and
+    # consumes this pre-created Secret. See the playbook header for why a job
+    # var / set_fact / params-file all fail or leak.
+    pre-run: ci/playbooks/create_lightspeed_secret.yml
+    # Delete the Secret after the run (even on cancel) as defense-in-depth for a
+    # surviving node (e.g. autohold).
     post-run:
-      - name: ci/playbooks/cleanup_lightspeed_token.yml
+      - name: ci/playbooks/cleanup_lightspeed_secret.yml
         cleanup: true
     vars:
       pre_tests_01_deploy_lightspeed_operator:
@@ -36,10 +36,11 @@
       cifmw_openstack_lightspeed_llm_endpoint: "https://api.example.com/v1/chat/completions"
       cifmw_openstack_lightspeed_model_name: "example-model"
 
-      # cifmw_openstack_lightspeed_api_token is intentionally NOT set here. It is
-      # provided at run time from artifacts/parameters/lightspeed-token.yml, which
-      # the pre-run playbook (ci/playbooks/set_lightspeed_token.yml) writes from
-      # the encrypted secret. It must NOT be referenced here as
+      # cifmw_openstack_lightspeed_api_token is intentionally NOT set here. The
+      # pre-run playbook (ci/playbooks/create_lightspeed_secret.yml) creates the
+      # Secret in-cluster from the encrypted secret, and leaving this token
+      # undefined makes the install hook verify that pre-created Secret rather
+      # than create its own. It must NOT be referenced here as
       # "{{ openai_credentials.api_token }}" -- the secret is not in scope when
       # ci-framework serializes these vars.
 
