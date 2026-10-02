@@ -4,11 +4,26 @@
     name: lightspeed-operator-deployment-crc
     parent: podified-multinode-hci-deployment-crc-1comp-backends
     attempts: 1
+    final: true
     dependencies:
       - openstack-k8s-operators-content-provider
     required-projects:
       - openstack-k8s-operators/lightspeed-operator
       - openstack-k8s-operators/ci-framework
+    secrets:
+      - name: openai_credentials
+        secret: lightspeed-openai-token
+    # Create the LLM API token Secret in-cluster from the encrypted Zuul secret
+    # before the run. With cifmw_openstack_lightspeed_api_token left undefined
+    # (see below), the install hook takes its "verify secret exists" branch and
+    # consumes this pre-created Secret. See the playbook header for why a job
+    # var / set_fact / params-file all fail or leak.
+    pre-run: ci/playbooks/create_lightspeed_secret.yml
+    # Delete the Secret after the run (even on cancel) as defense-in-depth for a
+    # surviving node (e.g. autohold).
+    post-run:
+      - name: ci/playbooks/cleanup_lightspeed_secret.yml
+        cleanup: true
     vars:
       pre_tests_01_deploy_lightspeed_operator:
         source: install-openstack-lightspeed.yml
@@ -21,8 +36,13 @@
       cifmw_openstack_lightspeed_llm_endpoint: "https://api.example.com/v1/chat/completions"
       cifmw_openstack_lightspeed_model_name: "example-model"
 
-      # Mock token for CI deployment testing (operator installs but service won't be functional)
-      cifmw_openstack_lightspeed_api_token: "dummy-token-for-ci"
+      # cifmw_openstack_lightspeed_api_token is intentionally NOT set here. The
+      # pre-run playbook (ci/playbooks/create_lightspeed_secret.yml) creates the
+      # Secret in-cluster from the encrypted secret, and leaving this token
+      # undefined makes the install hook verify that pre-created Secret rather
+      # than create its own. It must NOT be referenced here as
+      # "{{ openai_credentials.api_token }}" -- the secret is not in scope when
+      # ci-framework serializes these vars.
 
       # TLS CA cert omitted for CI - not needed for dummy endpoint testing
       # Operator fails to parse invalid PEM data; omitting allows reconciliation to proceed
