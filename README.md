@@ -180,9 +180,18 @@ Note: `--zap-devel` enable verbose (development) logging locally.
 This will:
 
 1. Install the CRDs into your cluster.
-2. Run the operator locally, connected to your cluster.
+2. Run the operator locally, connected to your cluster, with admission webhooks disabled.
 
 Use this for quick development and testing.
+
+To develop with the validating webhook enabled, use a local Linux CRC cluster
+without a deployed Lightspeed operator and run:
+
+```bash
+make install run-with-webhook
+```
+
+Use `make webhook-cleanup` after an unclean shutdown.
 
 *Attention*: In this mode RBACs are ignored, so when changing those please run
 the operator in the OpenShift cluster with an image.
