@@ -145,6 +145,7 @@ func (r *OpenStackLightspeedReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	// Always patch the instance status when exiting this function so we can persist any changes.
 	defer func() {
+
 		// Don't update the status, if reconciler Panics
 		if r := recover(); r != nil {
 			Log.Info(fmt.Sprintf("panic during reconcile %v\n", r))
