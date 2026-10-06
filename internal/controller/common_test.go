@@ -204,7 +204,7 @@ func TestBuildMCPServerConfigMap_UsesDevRhosMCPConfig(t *testing.T) {
 		},
 	}
 
-	configMap, err := BuildMCPServerConfigMap(instance, false, nil)
+	configMap, err := BuildMCPServerConfigMap(instance, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
