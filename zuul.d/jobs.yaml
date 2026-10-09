@@ -9,27 +9,29 @@
     required-projects:
       - openstack-k8s-operators/lightspeed-operator
       - openstack-k8s-operators/ci-framework
+      # Use the prepared test checkout, including Depends-On changes.
+      - openstack-k8s-operators/lightspeed-tests
     vars:
       pre_tests_01_deploy_lightspeed_operator:
         source: install-openstack-lightspeed.yml
         type: playbook
 
+      # Run against the instance made Ready by the preceding deployment hook.
+      pre_tests_02_run_lightspeed_tests:
+        source: run-openstack-lightspeed-tests.yml
+        type: playbook
+
+      cifmw_openstack_lightspeed_mock_enabled: true
+
       # Operator catalog image from content-provider dependency
       cifmw_openstack_lightspeed_catalog_image: "{{ content_provider_registry_ip }}:5001/openstack-k8s-operators/lightspeed-operator-index:{{ zuul.patchset }}"
 
-      # LLM configuration
-      cifmw_openstack_lightspeed_llm_endpoint: "https://api.example.com/v1/chat/completions"
+      # Mock provider deployed by the ci-framework hook
+      cifmw_openstack_lightspeed_llm_endpoint: "http://mock-llm-api-server-pod.openstack-lightspeed.svc.cluster.local:8000/v1"
+      cifmw_openstack_lightspeed_llm_endpoint_type: "openai"
       cifmw_openstack_lightspeed_model_name: "example-model"
-
-      # Mock token for CI deployment testing (operator installs but service won't be functional)
       cifmw_openstack_lightspeed_api_token: "dummy-token-for-ci"
 
-      # TLS CA cert omitted for CI - not needed for dummy endpoint testing
-      # Operator fails to parse invalid PEM data; omitting allows reconciliation to proceed
-      # to expected failure point (LLM credential validation)
-      # Uncomment and provide valid PEM cert when testing with real LLM endpoint
-
-      # cifmw_openstack_lightspeed_ca_cert: "dummy-cert-for-ci"
       cifmw_os_must_gather_additional_namespaces: "openstack-lightspeed"
       cifmw_os_must_gather_omc: false
 
