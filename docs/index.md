@@ -34,4 +34,5 @@ configuration
 development
 troubleshooting
 usage
+openstackassistant
 :::
