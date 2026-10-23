@@ -35,4 +35,27 @@ WORKDIR /
 COPY --from=builder /workspace/manager .
 USER 65532:65532
 
+ARG IMAGE_COMPONENT="openstack-lightspeed"
+ARG IMAGE_NAME="lightspeed-operator"
+ARG IMAGE_VERSION="0.1.0"
+ARG IMAGE_SUMMARY="Openstack Lightspeed Operator"
+ARG IMAGE_DESC="This image includes the openstack-k8s-operators/lightspeed-operator"
+ARG IMAGE_TAGS="cn-openstack openstack lightspeed"
+ARG STREAM
+ARG GIT_REVISION
+
+LABEL com.redhat.component="${IMAGE_COMPONENT}" \
+      name="${IMAGE_NAME}" \
+      version="${IMAGE_VERSION}" \
+      summary="${IMAGE_SUMMARY}" \
+      io.k8s.name="${IMAGE_NAME}" \
+      io.k8s.description="${IMAGE_DESC}" \
+      io.openshift.tags="${IMAGE_TAGS}" \
+      org.label-schema.vcs-url="https://github.com/openstack-k8s-operators/lightspeed-operator" \
+      s2i.openstack.org/stream=${STREAM} \
+      org.opencontainers.image.revision=${GIT_REVISION} \
+      org.opencontainers.image.title="OpenStack Lightspeed Operator" \
+      org.opencontainers.image.description="${IMAGE_DESC}" \
+      org.opencontainers.image.source="https://github.com/openstack-k8s-operators/lightspeed-operator"
+
 ENTRYPOINT ["/manager"]
