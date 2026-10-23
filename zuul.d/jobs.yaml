@@ -13,7 +13,6 @@
     secrets:
       - name: openai_credentials
         secret: lightspeed-openai-token
-    # Creates the token Secret in-cluster before the run (see playbook header).
     pre-run: ci/playbooks/create_lightspeed_secret.yml
     # cleanup: true so Zuul still attempts the delete when the job is canceled.
     post-run:
