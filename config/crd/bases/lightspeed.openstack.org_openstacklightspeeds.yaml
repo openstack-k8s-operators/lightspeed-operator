@@ -207,6 +207,12 @@ spec:
                     description: ContainerImage overrides the lightspeed-service-api
                       container image. When unset, the operator default is used.
                     type: string
+                  customServiceConfig:
+                    description: |-
+                      CustomServiceConfig is a YAML mapping recursively merged into the generated
+                      Lightspeed Stack configuration. Custom values override generated values;
+                      lists and scalar values are replaced rather than merged.
+                    type: string
                   logLevel:
                     default: INFO
                     description: 'Log level for the lightspeed-service-api container.

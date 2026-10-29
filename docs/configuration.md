@@ -55,6 +55,31 @@ model aliases map to request fields (`provider` and `model`) at query time.
 | `dataverseExporter.logLevel` | `INFO` | Feedback/transcript exporter sidecar. Same values as above. |
 | `database.logLevel` | `INFO` | PostgreSQL container. `DEBUG` also logs every SQL statement. |
 
+## Custom Lightspeed Stack configuration
+
+`lcore.customServiceConfig` accepts a YAML mapping that is recursively merged into
+the generated Lightspeed Stack configuration. Custom values override generated
+values. Nested mappings preserve unspecified settings; lists and scalar values
+are replaced. Invalid YAML or a non-mapping value causes configuration
+reconciliation to fail.
+
+For example, increase the maximum character length of the serialized Responses
+API request body:
+
+```yaml
+spec:
+  lcore:
+    customServiceConfig: |
+      customization:
+        responses_request_max_size: 262144
+```
+
+This preserves the operator's system prompt settings while adding the request
+size limit. When omitted, Lightspeed Stack 0.7.3 uses its default of `131072` characters.
+The configured value must be a positive integer. Use a LCore container image that
+supports this setting. This request size limit is separate from
+`models[].maxTokensForResponse`, which controls response tokens.
+
 ## Data collection
 
 ```yaml
