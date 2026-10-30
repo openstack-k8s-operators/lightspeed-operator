@@ -21,7 +21,48 @@ import (
 	"testing"
 
 	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
+	"k8s.io/utils/ptr"
+	"sigs.k8s.io/yaml"
 )
+
+func TestBuildLCoreConfigYAML_ResponsesRequestMaxSize(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		lcore *apiv1beta1.LCoreSpec
+		want  *int
+	}{
+		{name: "lcore omitted"},
+		{name: "limit omitted", lcore: &apiv1beta1.LCoreSpec{}},
+		{name: "minimum limit", lcore: &apiv1beta1.LCoreSpec{ResponsesRequestMaxSize: ptr.To(1)}, want: ptr.To(1)},
+		{name: "increased limit", lcore: &apiv1beta1.LCoreSpec{ResponsesRequestMaxSize: ptr.To(262144)}, want: ptr.To(262144)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			instance := &apiv1beta1.OpenStackLightspeed{}
+			instance.Spec.LCore = tc.lcore
+			data, err := buildLCoreConfigYAML(context.Background(), newTestHelper(t), instance)
+			if err != nil {
+				t.Fatalf("build LCore configuration: %v", err)
+			}
+			var config struct {
+				Customization struct {
+					ResponsesRequestMaxSize  *int   `json:"responses_request_max_size"`
+					SystemPrompt             string `json:"system_prompt"`
+					DisableQuerySystemPrompt bool   `json:"disable_query_system_prompt"`
+				} `json:"customization"`
+			}
+			if err := yaml.Unmarshal([]byte(data), &config); err != nil {
+				t.Fatalf("parse LCore configuration: %v", err)
+			}
+			got := config.Customization.ResponsesRequestMaxSize
+			if !ptr.Equal(got, tc.want) {
+				t.Errorf("responses_request_max_size = %v, want %v", got, tc.want)
+			}
+			if config.Customization.SystemPrompt != getSystemPrompt() || !config.Customization.DisableQuerySystemPrompt {
+				t.Error("expected the operator system prompt and query system prompt protection")
+			}
+		})
+	}
+}
 
 func TestBuildLCoreQuotaHandlersConfig_DisabledWhenNoLimiters(t *testing.T) {
 	h := newTestHelper(t)

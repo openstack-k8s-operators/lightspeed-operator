@@ -155,14 +155,17 @@ func buildLCoreDatabaseConfig(h *common_helper.Helper, _ *apiv1beta1.OpenStackLi
 	}
 }
 
-// buildLCoreCustomizationConfig configures system prompt customization
-// Uses config field if set, otherwise falls back to default
-func buildLCoreCustomizationConfig() map[string]interface{} {
-	return map[string]interface{}{
+// buildLCoreCustomizationConfig configures the system prompt and request size limit.
+func buildLCoreCustomizationConfig(instance *apiv1beta1.OpenStackLightspeed) map[string]interface{} {
+	config := map[string]interface{}{
 		"system_prompt": getSystemPrompt(),
 		// Prevent users from overriding via API
 		"disable_query_system_prompt": true,
 	}
+	if instance.Spec.LCore != nil && instance.Spec.LCore.ResponsesRequestMaxSize != nil {
+		config["responses_request_max_size"] = *instance.Spec.LCore.ResponsesRequestMaxSize
+	}
+	return config
 }
 
 // buildLCoreConversationCacheConfig configures chat history caching (PostgreSQL)
@@ -339,7 +342,7 @@ func buildLCoreConfigYAML(ctx context.Context, h *common_helper.Helper, instance
 		"authentication":       buildLCoreAuthenticationConfig(h, instance),
 		"inference":            buildLCoreInferenceConfig(h, instance),
 		"database":             buildLCoreDatabaseConfig(h, instance),
-		"customization":        buildLCoreCustomizationConfig(),
+		"customization":        buildLCoreCustomizationConfig(instance),
 		"conversation_cache":   buildLCoreConversationCacheConfig(h, instance),
 		"rag":                  buildLCoreRAGConfig(ctx, h, instance),
 	}

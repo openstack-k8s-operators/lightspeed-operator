@@ -50,12 +50,12 @@ spec:
         - name: vector-database-collect
           image: quay.io/openstack-lightspeed/rag-content:os-docs-2026.1-ogx
         - name: vector-database-config-build
-          image: quay.io/lightspeed-core/lightspeed-stack:0.7.0rc3
+          image: quay.io/lightspeed-core/lightspeed-stack:0.7.2
       containers:
         - name: ogx
-          image: quay.io/lightspeed-core/lightspeed-stack:0.7.0rc3
+          image: quay.io/lightspeed-core/lightspeed-stack:0.7.2
         - name: lightspeed-service-api
-          image: quay.io/lightspeed-core/lightspeed-stack:0.7.0rc3
+          image: quay.io/lightspeed-core/lightspeed-stack:0.7.2
         - name: lightspeed-to-dataverse-exporter
           image: quay.io/lightspeed-core/lightspeed-to-dataverse-exporter:latest
 status:
@@ -81,7 +81,7 @@ spec:
   dataverseExporter:
     containerImage: quay.io/lightspeed-core/lightspeed-to-dataverse-exporter:latest
   lcore:
-    containerImage: quay.io/lightspeed-core/lightspeed-stack:0.7.0rc3
+    containerImage: quay.io/lightspeed-core/lightspeed-stack:0.7.2
     resources:
       limits:
         cpu: "1"
@@ -90,7 +90,7 @@ spec:
         cpu: 250m
         memory: 512Mi
   ogx:
-    containerImage: quay.io/lightspeed-core/lightspeed-stack:0.7.0rc3
+    containerImage: quay.io/lightspeed-core/lightspeed-stack:0.7.2
     resources:
       limits:
         cpu: "2"

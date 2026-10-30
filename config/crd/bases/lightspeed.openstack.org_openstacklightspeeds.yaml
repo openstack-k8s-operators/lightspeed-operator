@@ -287,6 +287,12 @@ spec:
                           More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                         type: object
                     type: object
+                  responsesRequestMaxSize:
+                    description: |-
+                      ResponsesRequestMaxSize limits the character length of the serialized Responses API request body.
+                      When unset, the Lightspeed Stack default is used (65536 characters).
+                    minimum: 1
+                    type: integer
                 type: object
               models:
                 description: Models configures available LLM models.

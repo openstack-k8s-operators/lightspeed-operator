@@ -173,6 +173,6 @@ spec:
     name: operator
   - image: quay.io/openstack-lightspeed/rag-content:os-docs-2026.1-ogx
     name: rag-content
-  - image: quay.io/lightspeed-core/lightspeed-stack:0.7.0rc3
+  - image: quay.io/lightspeed-core/lightspeed-stack:0.7.2
     name: ogx
   version: 0.0.0

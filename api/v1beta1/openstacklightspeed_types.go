@@ -30,7 +30,7 @@ const (
 	OpenStackLightspeedContainerImage = "quay.io/openstack-lightspeed/rag-content:os-docs-2026.1-ogx"
 
 	// LCoreContainerImage is the fall-back container image for LCore
-	LCoreContainerImage = "quay.io/lightspeed-core/lightspeed-stack:0.7.0rc3"
+	LCoreContainerImage = "quay.io/lightspeed-core/lightspeed-stack:0.7.2"
 
 	// OGXContainerImage is the fall-back container image for OGX.
 	OGXContainerImage = LCoreContainerImage
@@ -137,6 +137,12 @@ type DatabaseSpec struct {
 
 // LCoreSpec defines configuration for the lightspeed-service-api container.
 type LCoreSpec struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=1
+	// ResponsesRequestMaxSize limits the character length of the serialized Responses API request body.
+	// When unset, the Lightspeed Stack default is used (65536 characters).
+	ResponsesRequestMaxSize *int `json:"responsesRequestMaxSize,omitempty"`
+
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:={requests: {cpu: "250m", memory: "512Mi"}, limits: {cpu: "1", memory: "2Gi"}}
 	// Resources sets compute resources for the lightspeed-service-api

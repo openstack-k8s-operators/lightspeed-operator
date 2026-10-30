@@ -77,9 +77,9 @@ spec:
           - name: RELATED_IMAGE_OPENSTACK_LIGHTSPEED_IMAGE_URL_DEFAULT
             value: quay.io/openstack-lightspeed/rag-content:os-docs-2026.1-ogx
           - name: RELATED_IMAGE_LCORE_IMAGE_URL_DEFAULT
-            value: quay.io/lightspeed-core/lightspeed-stack:0.7.0rc3
+            value: quay.io/lightspeed-core/lightspeed-stack:0.7.2
           - name: RELATED_IMAGE_OGX_IMAGE_URL_DEFAULT
-            value: quay.io/lightspeed-core/lightspeed-stack:0.7.0rc3
+            value: quay.io/lightspeed-core/lightspeed-stack:0.7.2
           - name: RELATED_IMAGE_EXPORTER_IMAGE_URL_DEFAULT
             value: quay.io/lightspeed-core/lightspeed-to-dataverse-exporter:latest
           - name: RELATED_IMAGE_POSTGRES_IMAGE_URL_DEFAULT

@@ -55,6 +55,24 @@ model aliases map to request fields (`provider` and `model`) at query time.
 | `dataverseExporter.logLevel` | `INFO` | Feedback/transcript exporter sidecar. Same values as above. |
 | `database.logLevel` | `INFO` | PostgreSQL container. `DEBUG` also logs every SQL statement. |
 
+## Responses request size
+
+`lcore.responsesRequestMaxSize` sets the maximum character length of the
+serialized Responses API request body. It must be at least `1`. When omitted,
+the operator leaves the setting out of the generated configuration, allowing
+Lightspeed Stack to use its default of `65536` characters.
+
+```yaml
+spec:
+  lcore:
+    responsesRequestMaxSize: 262144
+```
+
+The operator maps this field to `customization.responses_request_max_size`
+in the Lightspeed Stack configuration. Use a LCore container image that
+supports this setting. This request size limit is separate from
+`models[].maxTokensForResponse`, which controls response tokens.
+
 ## Data collection
 
 ```yaml

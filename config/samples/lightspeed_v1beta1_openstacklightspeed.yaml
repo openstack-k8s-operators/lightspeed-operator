@@ -40,7 +40,7 @@ spec:
   #       cpu: "2"
   #       memory: "8Gi"
   #   logLevel: "all=info"
-  #   containerImage: quay.io/lightspeed-core/lightspeed-stack:0.7.0rc3
+  #   containerImage: quay.io/lightspeed-core/lightspeed-stack:0.7.2
   # Uncomment to customize lightspeed-service-api container resources and log level:
   # lcore:
   #   resources:
@@ -51,7 +51,7 @@ spec:
   #       cpu: "1"
   #       memory: "2Gi"
   #   logLevel: "INFO"
-  #   containerImage: quay.io/lightspeed-core/lightspeed-stack:0.7.0rc3
+  #   containerImage: quay.io/lightspeed-core/lightspeed-stack:0.7.2
   # Uncomment to customize dataverse exporter configuration:
   # dataverseExporter:
   #   logLevel: "INFO"

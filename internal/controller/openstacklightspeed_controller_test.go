@@ -151,6 +151,29 @@ var _ = ginkgo.Describe("OpenStackLightspeed Controller", func() {
 			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
 			// Example: If you expect a certain status condition after reconciliation, verify it here.
 		})
+		ginkgo.It("should validate the Responses request size limit", func() {
+			for _, size := range []int{-1, 0, 1, 262144} {
+				resource := &apiv1beta1.OpenStackLightspeed{}
+				gomega.Expect(k8sClient.Get(ctx, typeNamespacedName, resource)).To(gomega.Succeed())
+				resource.Spec.LCore = &apiv1beta1.LCoreSpec{ResponsesRequestMaxSize: toPtr(size)}
+				err := k8sClient.Update(ctx, resource)
+				if size < 1 {
+					gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue(), "limit %d should be rejected: %v", size, err)
+				} else {
+					gomega.Expect(err).NotTo(gomega.HaveOccurred())
+					stored := &apiv1beta1.OpenStackLightspeed{}
+					gomega.Expect(k8sClient.Get(ctx, typeNamespacedName, stored)).To(gomega.Succeed())
+					gomega.Expect(stored.Spec.LCore.ResponsesRequestMaxSize).To(gomega.Equal(toPtr(size)))
+				}
+			}
+			resource := &apiv1beta1.OpenStackLightspeed{}
+			gomega.Expect(k8sClient.Get(ctx, typeNamespacedName, resource)).To(gomega.Succeed())
+			resource.Spec.LCore.ResponsesRequestMaxSize = nil
+			gomega.Expect(k8sClient.Update(ctx, resource)).To(gomega.Succeed())
+			stored := &apiv1beta1.OpenStackLightspeed{}
+			gomega.Expect(k8sClient.Get(ctx, typeNamespacedName, stored)).To(gomega.Succeed())
+			gomega.Expect(stored.Spec.LCore.ResponsesRequestMaxSize).To(gomega.BeNil())
+		})
 	})
 })
 
