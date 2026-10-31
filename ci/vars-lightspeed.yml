@@ -1,0 +1,4 @@
+---
+pre_tests_01_deploy_lightspeed_operator:
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/lightspeed-operator'].src_dir }}/ci/playbooks/install-openstack-lightspeed.yml"
+  type: playbook

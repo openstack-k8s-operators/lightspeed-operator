@@ -31,6 +31,7 @@ quickstart
 install_guide
 configuration
 development
+lightspeed-ci
 troubleshooting
 usage
 openstackassistant
