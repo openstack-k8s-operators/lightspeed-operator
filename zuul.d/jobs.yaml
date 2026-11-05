@@ -90,7 +90,7 @@
         lightspeed_timeout: 120
         lightspeed_model: "provider-default-model/default-model"
         pytest_args: "-v --tb=short --color=no -m 'not llm_dependent' tests/integration"
-        junit_xml_path: /var/lib/AnsibleTests/external_files/baseline.xml
+        junit_xml_path: /var/lib/AnsibleTests/external_files/lightspeed-tests/junit.xml
       cifmw_test_operator_ansibletest_extra_mounts:
         - name: lightspeed
           extraVol:
