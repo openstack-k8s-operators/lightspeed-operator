@@ -1,0 +1,97 @@
+---
+# Copyright Red Hat, Inc.
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+# A playbook that deploys OpenStack Assistant, designed to run as a
+# ci-framework hook. The deployment uses the `make openstack_assistant`
+# target from install_yamls. The prerequisites for successfully deploying
+# OpenStackAssistant with this playbook are:
+#
+#  1. OpenStack is deployed.
+#  2. OpenStack Lightspeed is deployed.
+- name: Deploy OpenStack Assistant
+  hosts: "{{ cifmw_target_hook_host | default('localhost') }}"
+  connection: local
+  vars:
+    _openstack_lightspeed_namespace: "{{ cifmw_openstack_lightspeed_namespace | default('openstack-lightspeed') }}"
+    _openstack_assistant_namespace: "{{ openstack_assistant_namespace | default('openstack') }}"
+    _openstack_assistant_name: "{{ openstack_assistant_name | default('openstack-assistant') }}"
+    _openstack_assistant_client_name: "{{ openstack_assistant_client | default('openstackclient') }}"
+    _openstack_assistant_image: "{{ openstack_assistant_image | default('quay.io/openstack-s2i-containers/openstack-goose:master-latest') }}"
+    _openstack_assistant_model: "{{ openstack_assistant_model | default('') }}"
+    _openstack_assistant_lightspeed_url: "{{ openstack_assistant_lightspeed_url | default('https://lightspeed-app-server.' ~ _openstack_lightspeed_namespace ~ '.svc:8443/v1') }}"
+    _openstack_assistant_enabled: "{{ openstack_assistant_enabled | default(false) | bool }}"
+    _openstack_assistant_ready_retries: "{{ openstack_assistant_ready_retries | default(60) | int }}"
+    kubeconfig_path: "{{ cifmw_openshift_kubeconfig | default(ansible_env.HOME ~ '/.crc/machines/crc/kubeconfig') }}"
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+
+  tasks:
+    - name: Deploy OpenStack Assistant
+      when: _openstack_assistant_enabled
+      block:
+        - name: Deploy OpenStack Assistant via install_yamls
+          vars:
+            make_openstack_assistant_env: >-
+              {{ cifmw_install_yamls_environment | default({}) |
+                 combine({
+                   'PATH': cifmw_path | default(ansible_env.PATH),
+                   'KUBECONFIG': kubeconfig_path,
+                   'NAMESPACE': _openstack_assistant_namespace,
+                   'LIGHTSPEED_NAMESPACE': _openstack_lightspeed_namespace,
+                   'OPENSTACK_ASSISTANT_NAME': _openstack_assistant_name,
+                   'OPENSTACK_ASSISTANT_IMAGE': _openstack_assistant_image,
+                   'OPENSTACK_ASSISTANT_MODEL': _openstack_assistant_model,
+                   'OPENSTACK_ASSISTANT_CLIENT': _openstack_assistant_client_name,
+                   'OPENSTACK_ASSISTANT_LIGHTSPEED_URL': _openstack_assistant_lightspeed_url,
+                 }) }}
+            make_openstack_assistant_retries: 3
+            make_openstack_assistant_delay: 60
+            make_openstack_assistant_until: "make_openstack_assistant_status is not failed"
+          ansible.builtin.include_role:
+            name: install_yamls_makes
+            tasks_from: make_openstack_assistant
+
+        - name: Wait for OpenStackAssistant CR to be ready
+          kubernetes.core.k8s_info:
+            api_version: assistant.openstack.org/v1beta1
+            kind: OpenStackAssistant
+            name: "{{ _openstack_assistant_name }}"
+            namespace: "{{ _openstack_assistant_namespace }}"
+          register: assistant_status
+          until:
+            - assistant_status.resources is defined
+            - assistant_status.resources | length > 0
+            - assistant_status.resources[0].status is defined
+            - assistant_status.resources[0].status.conditions is defined
+            - assistant_status.resources[0].status.conditions | selectattr('type', 'equalto', 'Ready') | map(attribute='status') | select('equalto', 'True') | list |
+              length > 0
+          retries: "{{ _openstack_assistant_ready_retries }}"
+          delay: 10
+
+        - name: Verify OpenStack Assistant (goose) pod is running
+          kubernetes.core.k8s_info:
+            api_version: v1
+            kind: Pod
+            namespace: "{{ _openstack_assistant_namespace }}"
+            label_selectors:
+              - "service=openstackassistant"
+          register: assistant_pods
+          until:
+            - assistant_pods.resources is defined
+            - assistant_pods.resources | length > 0
+            - assistant_pods.resources | map(attribute='status.phase') | select('equalto', 'Running') | list | length > 0
+          retries: "{{ _openstack_assistant_ready_retries }}"
+          delay: 10
