@@ -121,6 +121,8 @@
       # Replace the pre-run provider token with a dummy value for the mock.
       cifmw_openstack_lightspeed_api_token: "dummy-token-for-ci"
 
+      openstack_assistant_enabled: true
+
       cifmw_os_must_gather_additional_namespaces: "openstack-lightspeed"
       cifmw_os_must_gather_omc: false
 
