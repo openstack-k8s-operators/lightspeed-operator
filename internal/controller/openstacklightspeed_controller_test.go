@@ -151,6 +151,22 @@ var _ = ginkgo.Describe("OpenStackLightspeed Controller", func() {
 			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
 			// Example: If you expect a certain status condition after reconciliation, verify it here.
 		})
+		ginkgo.It("should persist and clear custom service configuration", func() {
+			resource := &apiv1beta1.OpenStackLightspeed{}
+			gomega.Expect(k8sClient.Get(ctx, typeNamespacedName, resource)).To(gomega.Succeed())
+			customConfig := "customization:\n  responses_request_max_size: 262144\n"
+			resource.Spec.LCore = &apiv1beta1.LCoreSpec{CustomServiceConfig: customConfig}
+			gomega.Expect(k8sClient.Update(ctx, resource)).To(gomega.Succeed())
+
+			stored := &apiv1beta1.OpenStackLightspeed{}
+			gomega.Expect(k8sClient.Get(ctx, typeNamespacedName, stored)).To(gomega.Succeed())
+			gomega.Expect(stored.Spec.LCore.CustomServiceConfig).To(gomega.Equal(customConfig))
+
+			stored.Spec.LCore.CustomServiceConfig = ""
+			gomega.Expect(k8sClient.Update(ctx, stored)).To(gomega.Succeed())
+			gomega.Expect(k8sClient.Get(ctx, typeNamespacedName, resource)).To(gomega.Succeed())
+			gomega.Expect(resource.Spec.LCore.CustomServiceConfig).To(gomega.BeEmpty())
+		})
 	})
 })
 

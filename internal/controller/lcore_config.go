@@ -20,6 +20,7 @@ import (
 	"context"
 	_ "embed" // Required for go:embed directives in this package
 	"fmt"
+	"math"
 
 	common_helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
@@ -155,8 +156,7 @@ func buildLCoreDatabaseConfig(h *common_helper.Helper, _ *apiv1beta1.OpenStackLi
 	}
 }
 
-// buildLCoreCustomizationConfig configures system prompt customization
-// Uses config field if set, otherwise falls back to default
+// buildLCoreCustomizationConfig configures the system prompt.
 func buildLCoreCustomizationConfig() map[string]interface{} {
 	return map[string]interface{}{
 		"system_prompt": getSystemPrompt(),
@@ -348,6 +348,25 @@ func buildLCoreConfigYAML(ctx context.Context, h *common_helper.Helper, instance
 		config["quota_handlers"] = quotaHandlers
 	}
 
+	if instance.Spec.LCore != nil && instance.Spec.LCore.CustomServiceConfig != "" {
+		var customConfig map[string]interface{}
+		if err := yaml.UnmarshalStrict([]byte(instance.Spec.LCore.CustomServiceConfig), &customConfig); err != nil {
+			return "", fmt.Errorf("failed to parse spec.lcore.customServiceConfig as a YAML mapping: %w", err)
+		}
+		if customConfig == nil {
+			return "", fmt.Errorf("spec.lcore.customServiceConfig must be a YAML mapping")
+		}
+		if customization, ok := customConfig["customization"].(map[string]interface{}); ok {
+			if requestSize, exists := customization["responses_request_max_size"]; exists {
+				value, ok := requestSize.(float64)
+				if !ok || value < 1 || math.Trunc(value) != value {
+					return "", fmt.Errorf("spec.lcore.customServiceConfig customization.responses_request_max_size must be a positive integer")
+				}
+			}
+		}
+		mergeLCoreConfig(config, customConfig)
+	}
+
 	// Convert to YAML
 	yamlBytes, err := yaml.Marshal(config)
 	if err != nil {
@@ -355,4 +374,17 @@ func buildLCoreConfigYAML(ctx context.Context, h *common_helper.Helper, instance
 	}
 
 	return string(yamlBytes), nil
+}
+
+// mergeLCoreConfig recursively merges mappings, replacing other values with overrides.
+func mergeLCoreConfig(config, overrides map[string]interface{}) {
+	for key, value := range overrides {
+		if customMap, ok := value.(map[string]interface{}); ok {
+			if generatedMap, ok := config[key].(map[string]interface{}); ok {
+				mergeLCoreConfig(generatedMap, customMap)
+				continue
+			}
+		}
+		config[key] = value
+	}
 }

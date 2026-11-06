@@ -138,6 +138,12 @@ type DatabaseSpec struct {
 // LCoreSpec defines configuration for the lightspeed-service-api container.
 type LCoreSpec struct {
 	// +kubebuilder:validation:Optional
+	// CustomServiceConfig is a YAML mapping recursively merged into the generated
+	// Lightspeed Stack configuration. Custom values override generated values;
+	// lists and scalar values are replaced rather than merged.
+	CustomServiceConfig string `json:"customServiceConfig,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:={requests: {cpu: "250m", memory: "512Mi"}, limits: {cpu: "1", memory: "2Gi"}}
 	// Resources sets compute resources for the lightspeed-service-api
 	// container in the lightspeed-stack deployment.

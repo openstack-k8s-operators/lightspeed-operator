@@ -21,7 +21,128 @@ import (
 	"testing"
 
 	apiv1beta1 "github.com/openstack-k8s-operators/lightspeed-operator/api/v1beta1"
+	"k8s.io/utils/ptr"
+	"sigs.k8s.io/yaml"
 )
+
+func TestBuildLCoreConfigYAML_CustomServiceConfig(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		lcore *apiv1beta1.LCoreSpec
+		want  *int
+	}{
+		{name: "lcore omitted"},
+		{name: "custom config omitted", lcore: &apiv1beta1.LCoreSpec{}},
+		{name: "empty mapping", lcore: &apiv1beta1.LCoreSpec{CustomServiceConfig: "{}"}},
+		{
+			name: "minimum limit",
+			lcore: &apiv1beta1.LCoreSpec{
+				CustomServiceConfig: "customization:\n  responses_request_max_size: 1\n",
+			},
+			want: ptr.To(1),
+		},
+		{
+			name: "increased limit",
+			lcore: &apiv1beta1.LCoreSpec{
+				CustomServiceConfig: "customization:\n  responses_request_max_size: 262144\n",
+			},
+			want: ptr.To(262144),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			instance := &apiv1beta1.OpenStackLightspeed{}
+			instance.Spec.LCore = tc.lcore
+			data, err := buildLCoreConfigYAML(context.Background(), newTestHelper(t), instance)
+			if err != nil {
+				t.Fatalf("build LCore configuration: %v", err)
+			}
+			var config struct {
+				Customization struct {
+					ResponsesRequestMaxSize  *int   `json:"responses_request_max_size"`
+					SystemPrompt             string `json:"system_prompt"`
+					DisableQuerySystemPrompt bool   `json:"disable_query_system_prompt"`
+				} `json:"customization"`
+			}
+			if err := yaml.Unmarshal([]byte(data), &config); err != nil {
+				t.Fatalf("parse LCore configuration: %v", err)
+			}
+			got := config.Customization.ResponsesRequestMaxSize
+			if !ptr.Equal(got, tc.want) {
+				t.Errorf("responses_request_max_size = %v, want %v", got, tc.want)
+			}
+			if config.Customization.SystemPrompt != getSystemPrompt() || !config.Customization.DisableQuerySystemPrompt {
+				t.Error("expected the operator system prompt and query system prompt protection")
+			}
+		})
+	}
+}
+
+func TestBuildLCoreConfigYAML_CustomServiceConfigOverrides(t *testing.T) {
+	instance := &apiv1beta1.OpenStackLightspeed{}
+	instance.Spec.LCore = &apiv1beta1.LCoreSpec{CustomServiceConfig: `
+customization:
+  system_prompt: Custom prompt
+  disable_query_system_prompt: false
+service:
+  port: 9000
+rag:
+  retrieval:
+    tool:
+      sources: [custom]
+extra:
+  enabled: true
+`}
+	data, err := buildLCoreConfigYAML(context.Background(), newTestHelper(t), instance)
+	if err != nil {
+		t.Fatalf("build LCore configuration: %v", err)
+	}
+	var config map[string]interface{}
+	if err := yaml.Unmarshal([]byte(data), &config); err != nil {
+		t.Fatalf("parse LCore configuration: %v", err)
+	}
+	customization := config["customization"].(map[string]interface{})
+	assertField(t, customization, "system_prompt", "Custom prompt")
+	assertField(t, customization, "disable_query_system_prompt", false)
+	service := config["service"].(map[string]interface{})
+	assertField(t, service, "port", float64(9000))
+	if len(service) < 2 {
+		t.Error("expected unspecified service defaults to be preserved")
+	}
+	rag := config["rag"].(map[string]interface{})
+	if _, ok := rag["okp"]; !ok {
+		t.Error("expected rag.okp to be preserved")
+	}
+	retrieval := rag["retrieval"].(map[string]interface{})
+	sources := retrieval["tool"].(map[string]interface{})["sources"].([]interface{})
+	if len(sources) != 1 || sources[0] != "custom" {
+		t.Errorf("tool sources = %v, want [custom]", sources)
+	}
+	assertField(t, config["extra"].(map[string]interface{}), "enabled", true)
+}
+
+func TestBuildLCoreConfigYAML_InvalidCustomServiceConfig(t *testing.T) {
+	for _, customConfig := range []string{
+		"customization: [",
+		"- customization",
+		"scalar",
+		"null",
+		"customization: {}\ncustomization: {}",
+		"customization:\n  responses_request_max_size: 0",
+		"customization:\n  responses_request_max_size: -1",
+		"customization:\n  responses_request_max_size: 1.5",
+		"customization:\n  responses_request_max_size: '1'",
+		"customization:\n  responses_request_max_size: null",
+	} {
+		t.Run(customConfig, func(t *testing.T) {
+			instance := &apiv1beta1.OpenStackLightspeed{}
+			instance.Spec.LCore = &apiv1beta1.LCoreSpec{CustomServiceConfig: customConfig}
+			data, err := buildLCoreConfigYAML(context.Background(), newTestHelper(t), instance)
+			if err == nil || data != "" {
+				t.Fatalf("expected invalid custom configuration to fail, got data %q, error %v", data, err)
+			}
+		})
+	}
+}
 
 func TestBuildLCoreQuotaHandlersConfig_DisabledWhenNoLimiters(t *testing.T) {
 	h := newTestHelper(t)

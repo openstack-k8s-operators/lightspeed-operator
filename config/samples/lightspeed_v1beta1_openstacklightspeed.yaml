@@ -43,6 +43,9 @@ spec:
   #   containerImage: quay.io/lightspeed-core/lightspeed-stack:0.7.3
   # Uncomment to customize lightspeed-service-api container resources and log level:
   # lcore:
+  #   customServiceConfig: |
+  #     customization:
+  #       responses_request_max_size: 262144
   #   resources:
   #     requests:
   #       cpu: "250m"
