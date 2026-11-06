@@ -34,7 +34,6 @@
 
       cifmw_test_operator_namespace: openstack
       cifmw_test_operator_privileged: false
-      cifmw_test_operator_selinux_level: s0:c478,c978
       cifmw_test_operator_ansibletest_name: ansibletest
       cifmw_test_operator_ansibletest_image: quay.io/podified-antelope-centos9/openstack-ansible-tests
       cifmw_test_operator_ansibletest_image_tag: current-podified
@@ -63,13 +62,15 @@
             test-operator-logs-pod-{{ run_test_fw | default('ansibletest') }}-{{
             test_operator_instance_name | default('ansibletest-lightspeed') }}
           namespace: "{{ cifmw_test_operator_namespace }}"
+          annotations:
+            # Same SCC the operator requests for the test pods; SCC admission
+            # then fills in the same namespace SELinux level on this Pod.
+            openshift.io/required-scc: nonroot-v2
         spec:
           securityContext:
             runAsUser: 227
             runAsGroup: 227
             fsGroup: 227
-            seLinuxOptions:
-              level: "{{ cifmw_test_operator_selinux_level }}"
           containers:
             - name: test-operator-logs-container
               image: "{{ cifmw_test_operator_logs_image | default('quay.io/quay/busybox') }}"
