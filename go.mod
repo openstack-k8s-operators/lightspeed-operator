@@ -7,7 +7,7 @@ require (
 	github.com/go-logr/logr v1.4.4
 	github.com/onsi/ginkgo/v2 v2.33.1
 	github.com/onsi/gomega v1.44.0
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20261029132259-9d025389145b
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20261102122626-a5970f05c6a9
 	github.com/operator-framework/api v0.33.0
 	k8s.io/api v0.33.13
 	k8s.io/apiextensions-apiserver v0.33.13 // indirect
@@ -23,6 +23,8 @@ replace github.com/openshift/api => github.com/openshift/api v0.0.0-202607101415
 
 // Keep kube-openapi compatible with Kubernetes 0.33's structured-merge-diff/v4 types.
 replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20250627150254-e9823e99808e
+
+require k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
 
 require (
 	cel.dev/expr v0.25.2 // indirect
@@ -103,7 +105,6 @@ require (
 	k8s.io/component-base v0.33.13 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250902184714-7fc278399c7f // indirect
-	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.33.0 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
