@@ -14,7 +14,12 @@
       - name: openai_credentials
         secret: lightspeed-openai-token
     # Creates the token Secret in-cluster before the run (see playbook header).
-    pre-run: ci/playbooks/create_lightspeed_secret.yml
+    # The SSH key injection must stay last: create_lightspeed_secret.yml
+    # replaces authorized_keys with the automation keys only and would drop
+    # any key added before it.
+    pre-run:
+      - ci/playbooks/create_lightspeed_secret.yml
+      - ci/playbooks/inject-ssh-key.yml
     # cleanup: true so Zuul still attempts the delete when the job is canceled.
     post-run:
       - name: ci/playbooks/cleanup_lightspeed_secret.yml
@@ -37,8 +42,10 @@
       cifmw_test_operator_ansibletest_name: ansibletest
       cifmw_test_operator_ansibletest_image: quay.io/podified-antelope-centos9/openstack-ansible-tests
       cifmw_test_operator_ansibletest_image_tag: current-podified
-      cifmw_test_operator_ansibletest_ansible_git_repo: https://github.com/openstack-k8s-operators/lightspeed-tests
-      cifmw_test_operator_ansibletest_ansible_git_branch: ""
+      # TODO(lpiwowar): switch back to openstack-k8s-operators/lightspeed-tests
+      # (default branch) once feature/openstack-assistant-test merges upstream.
+      cifmw_test_operator_ansibletest_ansible_git_repo: https://github.com/lpiwowar/lightspeed-tests
+      cifmw_test_operator_ansibletest_ansible_git_branch: feature/openstack-assistant-test
       cifmw_test_operator_ansibletest_ansible_playbook_path: playbooks/run_lightspeed_tests.yaml
       cifmw_test_operator_ansibletest_ansible_inventory: |
         localhost ansible_connection=local ansible_python_interpreter=python3
@@ -88,7 +95,9 @@
         lightspeed_url: "https://lightspeed-app-server.{{ cifmw_openstack_lightspeed_namespace | default('openstack-lightspeed') }}.svc.cluster.local:8443"
         lightspeed_timeout: 120
         lightspeed_model: "provider-default-model/default-model"
-        pytest_args: "-v --tb=short --color=no -m 'not llm_dependent' -k integration"
+        # The test suite lives in the installed rhos_lightspeed_tests package;
+        # the entry point resolves this dotted path with pytest --pyargs.
+        pytest_args: "-v --tb=short --color=no -m 'not llm_dependent' rhos_lightspeed_tests.tests"
         junit_xml_path: /var/lib/AnsibleTests/external_files/baseline.xml
       cifmw_test_operator_ansibletest_extra_mounts:
         - name: lightspeed
@@ -102,6 +111,15 @@
                       - serviceAccountToken:
                           path: token
                           expirationSeconds: 3600
+                      # The OpenStack Assistant e2e test builds a Kubernetes
+                      # client from the in-cluster credentials and reads the
+                      # CA from the standard path. The test pod disables SA
+                      # token automounting, so the CA must be projected too.
+                      - configMap:
+                          name: kube-root-ca.crt
+                          items:
+                            - key: ca.crt
+                              path: ca.crt
               mounts:
                 - name: lightspeed-client-token
                   mountPath: /var/run/secrets/kubernetes.io/serviceaccount
