@@ -27,6 +27,27 @@
 
     # Kubeconfig path - use user-provided or default to CRC location
     kubeconfig_path: "{{ cifmw_openshift_kubeconfig | default(ansible_env.HOME ~ '/.crc/machines/crc/kubeconfig') }}"
+
+    # test-operator assigns every test pod a dedicated ServiceAccount named
+    # "<CRD name>-<CR instance name>" (e.g., the "ansibletest-ansibletest-lightspeed"
+    # SA for an AnsibleTest CR named "ansibletest-lightspeed"). The ci-framework
+    # test_operator role names the AnsibleTest CR as follows:
+    #
+    #    "<cifmw_test_operator_ansibletest_name>-<cifmw_test_operator_stages[*].name>".
+    #
+    # The current default value of openstack_lightspeed_ansibletest_service_account ensures
+    # that we mount the necessary lightspeed permissions (get /ls-access) to the correct SA used
+    # by test-operator. Note that this works only when there is a single ansibletest step in
+    # cifmw_test_operator_stages. If more steps are introduced, this needs to be updated
+    # appropriately.
+    openstack_lightspeed_ansibletest_stage: >-
+      {{
+         cifmw_test_operator_stages | default([])
+         | selectattr('type', 'equalto', 'ansibletest')
+         | map(attribute='name') | first | default('lightspeed')
+      }}
+    openstack_lightspeed_ansibletest_service_account: >-
+      ansibletest-{{ cifmw_test_operator_ansibletest_name | default('ansibletest') }}-{{ openstack_lightspeed_ansibletest_stage }}
   environment:
     KUBECONFIG: "{{ kubeconfig_path }}"
 
@@ -470,7 +491,7 @@
               subjects:
                 # The current test-operator uses the namespace's default account.
                 - kind: ServiceAccount
-                  name: default
+                  name: "{{ openstack_lightspeed_ansibletest_service_account }}"
                   namespace: "{{ cifmw_test_operator_namespace | default('openstack') }}"
 
         - name: Create test-operator dummy config ConfigMap
