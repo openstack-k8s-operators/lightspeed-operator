@@ -489,7 +489,56 @@
                 kind: ClusterRole
                 name: lightspeed-access
               subjects:
-                # The current test-operator uses the namespace's default account.
+                # The dedicated ServiceAccount that test-operator runs the
+                # test Pod under (see openstack_lightspeed_ansibletest_service_account).
+                - kind: ServiceAccount
+                  name: "{{ openstack_lightspeed_ansibletest_service_account }}"
+                  namespace: "{{ cifmw_test_operator_namespace | default('openstack') }}"
+
+        # The OpenStack Assistant e2e test from lightspeed-tests execs into
+        # the openstack-assistant Pod (goose acp) over pods/exec. The request
+        # is authorized as the test Pod's ServiceAccount, which needs both:
+        #
+        #  1. create/get on the pods/exec subresource (plus get/list on pods)
+        #     in the namespace where the assistant Pod runs;
+        #  2. "use" of the SCC that admitted the assistant Pod (nonroot-v2).
+        #
+        # (2) is already granted to the ServiceAccount by test-operator itself,
+        # so only (1) needs to be bound here. Note that during exec OpenShift
+        # revalidates the target Pod's security context against the SCCs
+        # available to the caller, which is why (2) matters at all.
+        - name: Authorize the test Pod to exec into the OpenStack Assistant
+          when: openstack_assistant_enabled | default(false) | bool
+          kubernetes.core.k8s:
+            state: present
+            definition:
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: lightspeed-tests-assistant-exec
+              rules:
+                - apiGroups: [""]
+                  resources: ["pods"]
+                  verbs: ["get", "list"]
+                - apiGroups: [""]
+                  resources: ["pods/exec"]
+                  verbs: ["create", "get"]
+
+        - name: Bind the exec permissions to the test-operator ServiceAccount
+          when: openstack_assistant_enabled | default(false) | bool
+          kubernetes.core.k8s:
+            state: present
+            definition:
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: RoleBinding
+              metadata:
+                name: lightspeed-tests-assistant-exec
+                namespace: "{{ cifmw_test_operator_namespace | default('openstack') }}"
+              roleRef:
+                apiGroup: rbac.authorization.k8s.io
+                kind: ClusterRole
+                name: lightspeed-tests-assistant-exec
+              subjects:
                 - kind: ServiceAccount
                   name: "{{ openstack_lightspeed_ansibletest_service_account }}"
                   namespace: "{{ cifmw_test_operator_namespace | default('openstack') }}"

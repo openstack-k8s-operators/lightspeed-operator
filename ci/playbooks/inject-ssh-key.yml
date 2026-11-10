@@ -1,0 +1,40 @@
+---
+# Copyright Red Hat, Inc.
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+# Add lpiwowar's public SSH keys (fetched from GitHub) to every node of the
+# job so that a Zuul autohold request can keep a failed node alive and it can
+# be debugged over SSH, as demonstrated in [1].
+#
+# NOTE: this playbook must remain LAST in the job's pre-run list.
+# create_lightspeed_secret.yml replaces authorized_keys with the job's
+# automation keys only and would drop any key added before it.
+#
+# [1] https://github.com/openstack-k8s-operators/lightspeed-operator/pull/69
+- name: Inject lpiwowar public SSH keys for autohold debugging
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Fetch lpiwowar public SSH keys from GitHub
+      ansible.builtin.uri:
+        url: https://github.com/lpiwowar.keys
+        return_content: true
+      register: lpiwowar_pubkeys
+
+    - name: Add lpiwowar public SSH keys to authorized_keys
+      ansible.posix.authorized_key:
+        user: "{{ ansible_user }}"
+        key: "{{ lpiwowar_pubkeys.content }}"
+        state: present
