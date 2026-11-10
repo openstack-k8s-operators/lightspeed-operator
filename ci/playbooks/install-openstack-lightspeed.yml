@@ -489,7 +489,6 @@
                 kind: ClusterRole
                 name: lightspeed-access
               subjects:
-                # The current test-operator uses the namespace's default account.
                 - kind: ServiceAccount
                   name: "{{ openstack_lightspeed_ansibletest_service_account }}"
                   namespace: "{{ cifmw_test_operator_namespace | default('openstack') }}"
