@@ -107,18 +107,15 @@
                   mountPath: /var/run/secrets/kubernetes.io/serviceaccount
                   readOnly: true
 
-      # Fake LLM only; real-provider credentials are a follow-up.
-      cifmw_openstack_lightspeed_mock_enabled: true
+      cifmw_openstack_lightspeed_mock_enabled: false
 
       # Operator catalog image from content-provider dependency
       cifmw_openstack_lightspeed_catalog_image: "{{ content_provider_registry_ip }}:5001/openstack-k8s-operators/lightspeed-operator-index:{{ zuul.patchset }}"
 
-      # Mock provider deployed by the operator-owned hook
-      cifmw_openstack_lightspeed_llm_endpoint: "http://mock-llm-api-server-pod.openstack-lightspeed.svc.cluster.local:8000/v1"
+      # Use provider secrets created by the pre-run playbook
+      cifmw_openstack_lightspeed_llm_endpoint: "https://api.openai.com/v1"
       cifmw_openstack_lightspeed_llm_endpoint_type: "openai"
-      cifmw_openstack_lightspeed_model_name: "example-model"
-      # Replace the pre-run provider token with a dummy value for the mock.
-      cifmw_openstack_lightspeed_api_token: "dummy-token-for-ci"
+      cifmw_openstack_lightspeed_model_name: "gpt-4o-mini"
 
       openstack_assistant_enabled: true
 
