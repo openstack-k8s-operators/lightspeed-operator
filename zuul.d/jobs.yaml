@@ -39,8 +39,9 @@
       cifmw_test_operator_ansibletest_name: ansibletest
       cifmw_test_operator_ansibletest_image: quay.io/podified-antelope-centos9/openstack-ansible-tests
       cifmw_test_operator_ansibletest_image_tag: current-podified
-      cifmw_test_operator_ansibletest_ansible_git_repo: https://github.com/openstack-k8s-operators/lightspeed-tests
-      cifmw_test_operator_ansibletest_ansible_git_branch: ""
+      # debug only, switch back to openstack-k8s-operators/lightspeed-tests
+      cifmw_test_operator_ansibletest_ansible_git_repo: https://github.com/jancervenka/lightspeed-tests
+      cifmw_test_operator_ansibletest_ansible_git_branch: telemetry-e2e-test
       cifmw_test_operator_ansibletest_ansible_playbook_path: playbooks/run_lightspeed_tests.yaml
       cifmw_test_operator_ansibletest_ansible_inventory: |
         localhost ansible_connection=local ansible_python_interpreter=python3
