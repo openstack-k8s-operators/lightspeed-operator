@@ -20,6 +20,8 @@
       - name: ci/playbooks/cleanup_lightspeed_secret.yml
         cleanup: true
     vars:
+      # MetricStorage is managed by telemetry-operator and requires COO.
+      cifmw_deploy_obs: true
       cifmw_extras:
         - '@scenarios/centos-9/multinode-ci.yml'
         - '@scenarios/centos-9/hci_ceph_backends.yml'
@@ -37,8 +39,9 @@
       cifmw_test_operator_ansibletest_name: ansibletest
       cifmw_test_operator_ansibletest_image: quay.io/podified-antelope-centos9/openstack-ansible-tests
       cifmw_test_operator_ansibletest_image_tag: current-podified
-      cifmw_test_operator_ansibletest_ansible_git_repo: https://github.com/openstack-k8s-operators/lightspeed-tests
-      cifmw_test_operator_ansibletest_ansible_git_branch: ""
+      # debug only, switch back to openstack-k8s-operators/lightspeed-tests
+      cifmw_test_operator_ansibletest_ansible_git_repo: https://github.com/jancervenka/lightspeed-tests
+      cifmw_test_operator_ansibletest_ansible_git_branch: telemetry-e2e-test
       cifmw_test_operator_ansibletest_ansible_playbook_path: playbooks/run_lightspeed_tests.yaml
       cifmw_test_operator_ansibletest_ansible_inventory: |
         localhost ansible_connection=local ansible_python_interpreter=python3
@@ -88,7 +91,9 @@
         lightspeed_url: "https://lightspeed-app-server.{{ cifmw_openstack_lightspeed_namespace | default('openstack-lightspeed') }}.svc.cluster.local:8443"
         lightspeed_timeout: 120
         lightspeed_model: "provider-default-model/default-model"
-        pytest_args: "-v --tb=short --color=no -m 'not llm_dependent' -k integration"
+        pytest_args: "-v --tb=short --color=no -m 'not llm_dependent' -k 'integration or e2e'"
+        prometheus_url: "https://metric-storage-prometheus.{{ cifmw_openstack_namespace | default('openstack') }}.svc:9090"
+        prometheus_ca_cert_path: /var/run/secrets/prometheus/ca.crt
         junit_xml_path: /var/lib/AnsibleTests/external_files/lightspeed-tests/junit.xml
       cifmw_test_operator_ansibletest_extra_mounts:
         - name: lightspeed
@@ -102,9 +107,18 @@
                       - serviceAccountToken:
                           path: token
                           expirationSeconds: 3600
+                - name: prometheus-ca
+                  secret:
+                    secretName: combined-ca-bundle
+                    items:
+                      - key: tls-ca-bundle.pem
+                        path: ca.crt
               mounts:
                 - name: lightspeed-client-token
                   mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+                  readOnly: true
+                - name: prometheus-ca
+                  mountPath: /var/run/secrets/prometheus
                   readOnly: true
 
       # Fake LLM only; real-provider credentials are a follow-up.
