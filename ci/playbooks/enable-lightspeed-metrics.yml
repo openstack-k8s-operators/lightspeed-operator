@@ -1,0 +1,66 @@
+---
+- name: Enable OpenStack Lightspeed metrics collection
+  hosts: "{{ cifmw_target_hook_host | default('localhost') }}"
+  connection: local
+  gather_facts: false
+  vars:
+    telemetry_namespace: "{{ cifmw_openstack_namespace | default(cifmw_install_yamls_defaults['NAMESPACE'] | default('openstack')) }}"
+    lightspeed_namespace: "{{ cifmw_openstack_lightspeed_namespace | default('openstack-lightspeed') }}"
+    lightspeed_metrics_target: "lightspeed-app-server.{{ lightspeed_namespace }}.svc:8443"
+  environment:
+    KUBECONFIG: "{{ cifmw_openshift_kubeconfig }}"
+  tasks:
+    # Configure the owning control plane after Lightspeed is ready.
+    # Lightspeed Service creation does not trigger MetricStorage reconciliation.
+    # See docs/development.md#telemetry-metrics-discovery.
+    - name: Enable metric storage in the OpenStack control plane
+      kubernetes.core.k8s:
+        state: present
+        merge_type: merge
+        definition:
+          apiVersion: core.openstack.org/v1beta1
+          kind: OpenStackControlPlane
+          metadata:
+            name: controlplane
+            namespace: "{{ telemetry_namespace }}"
+          spec:
+            telemetry:
+              enabled: true
+              template:
+                metricStorage:
+                  enabled: true
+                  openStackLightspeedNamespace: "{{ lightspeed_namespace }}"
+                  monitoringStack:
+                    alertingEnabled: false
+                    storage:
+                      # CI only needs metrics for the lifetime of this job.
+                      strategy: ephemeral
+
+    - name: Wait for metric storage to be ready
+      kubernetes.core.k8s_info:
+        api_version: telemetry.openstack.org/v1beta1
+        kind: MetricStorage
+        name: metric-storage
+        namespace: "{{ telemetry_namespace }}"
+        wait: true
+        wait_condition:
+          type: Ready
+          status: "True"
+        wait_timeout: 600
+      register: metric_storage
+      failed_when: metric_storage is failed or metric_storage.resources | default([]) | length == 0
+
+    - name: Wait for telemetry to discover the Lightspeed metrics service
+      kubernetes.core.k8s_info:
+        api_version: monitoring.rhobs/v1alpha1
+        kind: ScrapeConfig
+        name: telemetry-openstack-lightspeed
+        namespace: "{{ telemetry_namespace }}"
+      register: lightspeed_scrape_config
+      until:
+        - lightspeed_scrape_config.resources | default([]) | length == 1
+        - >-
+          lightspeed_metrics_target in (lightspeed_scrape_config.resources[0].spec.staticConfigs
+          | map(attribute='targets') | flatten)
+      retries: 30
+      delay: 10

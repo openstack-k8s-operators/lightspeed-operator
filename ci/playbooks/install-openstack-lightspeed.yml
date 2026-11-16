@@ -483,7 +483,7 @@
               apiVersion: rbac.authorization.k8s.io/v1
               kind: ClusterRoleBinding
               metadata:
-                name: "lightspeed-access-{{ cifmw_test_operator_namespace | default('openstack') }}"
+                name: "lightspeed-tests-access-{{ cifmw_test_operator_namespace | default('openstack') }}"
               roleRef:
                 apiGroup: rbac.authorization.k8s.io
                 kind: ClusterRole

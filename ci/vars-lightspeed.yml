@@ -5,3 +5,6 @@ pre_tests_01_deploy_lightspeed_operator:
 pre_tests_02_deploy_openstack_assistant:
   source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/lightspeed-operator'].src_dir }}/ci/playbooks/deploy-openstack-assistant.yml"
   type: playbook
+pre_tests_03_enable_lightspeed_metrics:
+  source: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/openstack-k8s-operators/lightspeed-operator'].src_dir }}/ci/playbooks/enable-lightspeed-metrics.yml"
+  type: playbook

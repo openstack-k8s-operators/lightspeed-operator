@@ -23,6 +23,29 @@ cd ../..
 `PULL_SECRET` is the same pull secret described in the
 [installation guide](install_guide.md#access-to-registry-images).
 
+## Telemetry metrics discovery
+
+For new deployments collecting metrics through telemetry-operator, wait for
+`OpenStackLightspeed` to become `Ready` before enabling `MetricStorage` through
+the `OpenStackControlPlane`. The CRC CI job uses this order so that the
+`lightspeed-app-server` service exists when telemetry first discovers scrape
+targets.
+
+Telemetry currently discovers Lightspeed during `MetricStorage` reconciliation,
+using `spec.openStackLightspeedNamespace` to locate its metrics service. The
+service watch does not handle Lightspeed service events or map them to
+`MetricStorage` resources in another namespace. If `MetricStorage` has already
+reconciled before Lightspeed is installed, creating the service alone does not
+trigger discovery. Another reconciliation, caused by an update to `MetricStorage`
+or another watched resource, can discover it later. Until then, the
+`telemetry-openstack-lightspeed` scrape configuration may be absent even when
+`MetricStorage` reports `Ready`.
+
+A future improvement in telemetry-operator would be to watch Lightspeed metrics
+service events and reconcile the `MetricStorage` resources whose
+`spec.openStackLightspeedNamespace` matches the service's namespace. This would
+allow discovery regardless of installation order.
+
 ## Releasing to the community catalog
 
 The **Propose community operator release** GitHub Actions workflow uses
