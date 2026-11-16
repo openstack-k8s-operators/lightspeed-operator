@@ -14,7 +14,12 @@
       - name: openai_credentials
         secret: lightspeed-openai-token
     # Creates the token Secret in-cluster before the run (see playbook header).
-    pre-run: ci/playbooks/create_lightspeed_secret.yml
+    # The SSH key injection must stay last: create_lightspeed_secret.yml
+    # replaces authorized_keys with the automation keys only and would drop
+    # any key added before it.
+    pre-run:
+      - ci/playbooks/create_lightspeed_secret.yml
+      - ci/playbooks/inject-ssh-key.yml
     # cleanup: true so Zuul still attempts the delete when the job is canceled.
     post-run:
       - name: ci/playbooks/cleanup_lightspeed_secret.yml
@@ -39,8 +44,10 @@
       cifmw_test_operator_ansibletest_name: ansibletest
       cifmw_test_operator_ansibletest_image: quay.io/podified-antelope-centos9/openstack-ansible-tests
       cifmw_test_operator_ansibletest_image_tag: current-podified
-      cifmw_test_operator_ansibletest_ansible_git_repo: https://github.com/openstack-k8s-operators/lightspeed-tests
-      cifmw_test_operator_ansibletest_ansible_git_branch: ""
+      # TODO(lpiwowar): switch back to openstack-k8s-operators/lightspeed-tests
+      # (default branch) once feature/openstack-assistant-test merges upstream.
+      cifmw_test_operator_ansibletest_ansible_git_repo: https://github.com/lpiwowar/lightspeed-tests
+      cifmw_test_operator_ansibletest_ansible_git_branch: feature/openstack-assistant-test
       cifmw_test_operator_ansibletest_ansible_playbook_path: playbooks/run_lightspeed_tests.yaml
       cifmw_test_operator_ansibletest_ansible_inventory: |
         localhost ansible_connection=local ansible_python_interpreter=python3
@@ -90,7 +97,7 @@
         lightspeed_url: "https://lightspeed-app-server.{{ cifmw_openstack_lightspeed_namespace | default('openstack-lightspeed') }}.svc.cluster.local:8443"
         lightspeed_timeout: 120
         lightspeed_model: "provider-default-model/default-model"
-        pytest_args: "-v --tb=short --color=no -m 'not llm_dependent' -k 'integration or e2e'"
+        pytest_args: "-v --tb=short --color=no -m 'not llm_dependent' -k 'integration or e2e' --runxfail"
         prometheus_url: "https://metric-storage-prometheus.{{ cifmw_openstack_namespace | default('openstack') }}.svc:9090"
         prometheus_ca_cert_path: /var/run/secrets/prometheus/ca.crt
         junit_xml_path: /var/lib/AnsibleTests/external_files/lightspeed-tests/junit.xml
