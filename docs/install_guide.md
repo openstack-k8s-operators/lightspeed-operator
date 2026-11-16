@@ -160,6 +160,14 @@ oc get -n openstack-lightspeed deployments,pods
 
 Not reaching `Ready`? See [Troubleshooting](troubleshooting.md).
 
+> [!NOTE]
+> When collecting metrics through telemetry-operator, wait for
+> `OpenStackLightspeed` to become `Ready` before enabling `MetricStorage` through
+> the `OpenStackControlPlane`. If metric storage was enabled first, Lightspeed
+> metrics may not appear until `MetricStorage` reconciles again, even if it
+> reports `Ready`. See [Telemetry metrics discovery](development.md#telemetry-metrics-discovery)
+> for details.
+
 ## Accessing the assistant
 
 Goose CLI is the primary supported interface for RHOSO 19 Beta.
