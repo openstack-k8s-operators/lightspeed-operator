@@ -266,3 +266,7 @@ make kuttl-test-run
 **Important Notes:**
 - Ensure the namespace is clean before running tests to avoid resource conflicts
 or test failures.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and DCO information.
