@@ -7,5 +7,5 @@ Origin (DCO). This document was created by the Linux Kernel community and is a
 simple statement that you, as a contributor, have the legal right to make the
 contribution. See the [DCO](DCO) file for details.
 
-This project uses the CoreOS method for DCO agreement. A per-commit
+This project uses the CentOS method for DCO agreement. A per-commit
 `Signed-off-by` trailer is not required.
