@@ -63,6 +63,17 @@ database:
 inference:
   default_model: default-model
   default_provider: provider-default-model
+  providers:
+  - allowed_models:
+    - model_type: llm
+      name: default-model
+      provider_model_id: provider-default-model/default-model
+    config:
+      api_key: not-needed
+      base_url: http://localhost:8321/v1
+    id: provider-default-model
+    skip_model_discovery: true
+    type: openai
 name: Lightspeed Core Service (LCS)
 ogx:
   url: http://localhost:8321

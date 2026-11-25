@@ -144,6 +144,117 @@ func TestBuildLCoreConfigYAML_InvalidCustomServiceConfig(t *testing.T) {
 	}
 }
 
+// TestBuildLCoreConfigYAML_InferenceProviders verifies that the generated
+// config registers every spec.models[] entry as an OGX-pointing inference
+// provider.
+func TestBuildLCoreConfigYAML_InferenceProviders(t *testing.T) {
+	instance := &apiv1beta1.OpenStackLightspeed{
+		Spec: apiv1beta1.OpenStackLightspeedSpec{
+			OpenStackLightspeedCore: apiv1beta1.OpenStackLightspeedCore{
+				DefaultModel: "default-model",
+				Models: []apiv1beta1.OpenStackLightspeedModelSpec{
+					{
+						Name:            "default-model",
+						LLMEndpoint:     "https://default-model.example.com/v1",
+						LLMEndpointType: "openai",
+						LLMCredentials:  "default-model-credentials",
+						ModelName:       "ibm-granite/granite-3.1-8b-instruct",
+					},
+					{
+						Name:            "other-model",
+						LLMEndpoint:     "https://other-model.example.com/v1",
+						LLMEndpointType: "rhoai_vllm",
+						LLMCredentials:  "other-model-credentials",
+						ModelName:       "other-upstream-model",
+					},
+				},
+			},
+		},
+	}
+
+	data, err := buildLCoreConfigYAML(context.Background(), newTestHelper(t), instance)
+	if err != nil {
+		t.Fatalf("build LCore configuration: %v", err)
+	}
+
+	var config struct {
+		Inference struct {
+			DefaultModel    string `json:"default_model"`
+			DefaultProvider string `json:"default_provider"`
+			Providers       []struct {
+				Type               string `json:"type"`
+				ID                 string `json:"id"`
+				SkipModelDiscovery bool   `json:"skip_model_discovery"`
+				AllowedModels      []struct {
+					Name            string `json:"name"`
+					ProviderModelID string `json:"provider_model_id"`
+					ModelType       string `json:"model_type"`
+				} `json:"allowed_models"`
+				Config struct {
+					BaseURL string `json:"base_url"`
+					APIKey  string `json:"api_key"`
+				} `json:"config"`
+			} `json:"providers"`
+		} `json:"inference"`
+	}
+	if err := yaml.Unmarshal([]byte(data), &config); err != nil {
+		t.Fatalf("parse LCore configuration: %v", err)
+	}
+
+	inference := config.Inference
+	if inference.DefaultModel != "default-model" {
+		t.Errorf("default_model = %q, want default-model", inference.DefaultModel)
+	}
+	if inference.DefaultProvider != "provider-default-model" {
+		t.Errorf("default_provider = %q, want provider-default-model", inference.DefaultProvider)
+	}
+
+	// One provider per spec.models[] entry, in spec order, mirroring the
+	// provider-<name> ids registered on the OGX side.
+	wantProviders := []struct {
+		id              string
+		modelName       string
+		providerModelID string
+	}{
+		{id: "provider-default-model", modelName: "default-model", providerModelID: "provider-default-model/default-model"},
+		{id: "provider-other-model", modelName: "other-model", providerModelID: "provider-other-model/other-model"},
+	}
+	if len(inference.Providers) != len(wantProviders) {
+		t.Fatalf("providers = %+v, want %d entries", inference.Providers, len(wantProviders))
+	}
+	for i, want := range wantProviders {
+		provider := inference.Providers[i]
+		if provider.Type != "openai" {
+			t.Errorf("providers[%d].type = %q, want openai", i, provider.Type)
+		}
+		if provider.ID != want.id {
+			t.Errorf("providers[%d].id = %q, want %q", i, provider.ID, want.id)
+		}
+		if !provider.SkipModelDiscovery {
+			t.Errorf("providers[%d].skip_model_discovery = false, want true", i)
+		}
+		if len(provider.AllowedModels) != 1 {
+			t.Fatalf("providers[%d].allowed_models = %+v, want exactly one model", i, provider.AllowedModels)
+		}
+		allowed := provider.AllowedModels[0]
+		if allowed.Name != want.modelName {
+			t.Errorf("providers[%d].allowed_models[0].name = %q, want %q", i, allowed.Name, want.modelName)
+		}
+		if allowed.ProviderModelID != want.providerModelID {
+			t.Errorf("providers[%d].allowed_models[0].provider_model_id = %q, want %q", i, allowed.ProviderModelID, want.providerModelID)
+		}
+		if allowed.ModelType != "llm" {
+			t.Errorf("providers[%d].allowed_models[0].model_type = %q, want llm", i, allowed.ModelType)
+		}
+		if provider.Config.BaseURL != "http://localhost:8321/v1" {
+			t.Errorf("providers[%d].config.base_url = %q, want http://localhost:8321/v1", i, provider.Config.BaseURL)
+		}
+		if provider.Config.APIKey != "not-needed" {
+			t.Errorf("providers[%d].config.api_key = %q, want not-needed", i, provider.Config.APIKey)
+		}
+	}
+}
+
 func TestBuildLCoreQuotaHandlersConfig_DisabledWhenNoLimiters(t *testing.T) {
 	h := newTestHelper(t)
 
