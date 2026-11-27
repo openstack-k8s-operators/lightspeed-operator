@@ -1,0 +1,75 @@
+name: Bump lightspeed-stack:dev-latest digest pin
+
+on:
+  schedule:
+    - cron: '0 10 * * 6' # 10AM UTC Saturday, even ISO weeks only (see week parity check)
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Run even when the current ISO week is odd
+        type: boolean
+        default: false
+      digest:
+        description: Override the digest to pin (sha256:...). Defaults to the digest currently pointed to by the dev-latest tag.
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+env:
+  LCORE_IMAGE: quay.io/lightspeed-core/lightspeed-stack
+
+jobs:
+  bump-dev-latest-pin:
+    name: Advance the dev-latest digest pin and open a PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Check ISO week parity
+        id: week
+        shell: bash
+        env:
+          FORCE: ${{ inputs.force }}
+        run: |
+          set -euo pipefail
+
+          iso_week="$(date +%V)"
+          if (( 10#$iso_week % 2 == 0 )) || [[ "$FORCE" == "true" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Skipping: ISO week ${iso_week} is odd. Re-run with the 'force' input to bypass."
+          fi
+
+      - name: Install skopeo
+        if: steps.week.outputs.run == 'true' && inputs.digest == ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq skopeo
+
+      - name: Update dev-latest digest
+        id: bump
+        if: steps.week.outputs.run == 'true'
+        shell: bash
+        env:
+          OVERRIDE_DIGEST: ${{ inputs.digest }}
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/update_dev_latest_digest.sh"
+
+      - name: Commit and push pin update
+        if: steps.bump.outputs.changed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_PROMPT_DISABLED: "1"
+          GIT_TERMINAL_PROMPT: "0"
+          DIGEST: ${{ steps.bump.outputs.digest }}
+          SHORT_DIGEST: ${{ steps.bump.outputs.short }}
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/create_or_update_bump_pr.sh"
