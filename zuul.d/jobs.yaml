@@ -39,8 +39,7 @@
       cifmw_test_operator_ansibletest_name: ansibletest
       cifmw_test_operator_ansibletest_image: quay.io/podified-antelope-centos9/openstack-ansible-tests
       cifmw_test_operator_ansibletest_image_tag: current-podified
-      cifmw_test_operator_ansibletest_ansible_git_repo: https://github.com/openstack-k8s-operators/lightspeed-tests
-      cifmw_test_operator_ansibletest_ansible_git_branch: ""
+      # The pre-test hook supplies the source repository and branch.
       cifmw_test_operator_ansibletest_ansible_playbook_path: playbooks/run_lightspeed_tests.yaml
       cifmw_test_operator_ansibletest_ansible_inventory: |
         localhost ansible_connection=local ansible_python_interpreter=python3
@@ -123,8 +122,12 @@
       # Fake LLM only; real-provider credentials are a follow-up.
       cifmw_openstack_lightspeed_mock_enabled: true
 
-      # Operator catalog image from content-provider dependency
-      cifmw_openstack_lightspeed_catalog_image: "{{ content_provider_registry_ip }}:5001/openstack-k8s-operators/lightspeed-operator-index:{{ zuul.patchset }}"
+      # Tests-only PRs use the published catalog. Operator changes, including
+      # Depends-On changes, use the catalog returned by the content provider.
+      cifmw_openstack_lightspeed_catalog_image: >-
+        {{ (cifmw_operator_build_output | default({}))
+           .get('operators', {}).get('lightspeed-operator', {})
+           .get('image_catalog', 'quay.io/openstack-lightspeed/operator-catalog:latest') }}
 
       # Mock provider deployed by the operator-owned hook
       cifmw_openstack_lightspeed_llm_endpoint: "http://mock-llm-api-server-pod.openstack-lightspeed.svc.cluster.local:8000/v1"
