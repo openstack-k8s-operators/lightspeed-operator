@@ -1,0 +1,33 @@
+---
+- name: Select the Lightspeed test source
+  hosts: "{{ cifmw_target_hook_host | default('localhost') }}"
+  connection: local
+  gather_facts: false
+  vars:
+    lightspeed_tests_pr: "{{ zuul.project.name == 'openstack-k8s-operators/lightspeed-tests' }}"
+  tasks:
+    - name: Read the tests pull request source
+      when: lightspeed_tests_pr | bool
+      ansible.builtin.uri:
+        url: "https://api.github.com/repos/{{ zuul.project.name }}/pulls/{{ zuul.change }}"
+        headers:
+          Accept: application/vnd.github+json
+          X-GitHub-Api-Version: "2022-11-28"
+      register: lightspeed_tests_pull_request
+
+    # An empty branch lets git clone select the default branch; the existing
+    # runner cannot create a tracking branch if clone already checked it out.
+    - name: Return the test source to ci-framework
+      ansible.builtin.copy:
+        dest: "{{ cifmw_basedir }}/artifacts/{{ step }}_{{ hook_name }}.yml"
+        mode: "0644"
+        content: >-
+          {{ {
+            'cifmw_test_operator_ansibletest_ansible_git_repo':
+              lightspeed_tests_pull_request.json.head.repo.clone_url if lightspeed_tests_pr
+              else 'https://github.com/openstack-k8s-operators/lightspeed-tests',
+            'cifmw_test_operator_ansibletest_ansible_git_branch':
+              lightspeed_tests_pull_request.json.head.ref if lightspeed_tests_pr and
+              lightspeed_tests_pull_request.json.head.ref != lightspeed_tests_pull_request.json.head.repo.default_branch
+              else ''
+          } | to_nice_yaml }}
