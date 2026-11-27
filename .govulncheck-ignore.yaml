@@ -28,3 +28,23 @@ ignored_vulnerabilities:
         metricsserver.defaultServer.Start and manager.Server.Start, respectively.
         Both call http.Server.Serve; their handlers do not use MaxBytesReader or
         MaxBytesHandler.
+
+  - id: GO-2026-6974
+    module: go.opentelemetry.io/otel/sdk
+    reason: |
+      Reported only in tests. No tracer provider is ever configured, so
+      all OTel spans are no-ops and the vulnerable code never runs.
+    traces:
+      - >-
+        test/utils/utils.go:49:21: (fprintf) static-analysis path through the
+        GinkgoWriter io.Writer interface; never executed at runtime.
+
+  - id: GO-2026-6974
+    module: go.opentelemetry.io/otel/trace
+    reason: |
+      Reported only in tests. No tracer provider is ever configured, so
+      all OTel spans are no-ops and the vulnerable code never runs.
+    traces:
+      - >-
+        test/utils/utils.go:49:21: (fprintf) static-analysis path through otelhttp
+        request wrapping; never executed at runtime.
