@@ -71,14 +71,15 @@ spec:
   lcore:
     customServiceConfig: |
       customization:
-        responses_request_max_size: 262144
+        responses_request_max_size: 2097152
 ```
 
 This preserves the operator's system prompt settings while adding the request
-size limit. When omitted, Lightspeed Stack 0.7.3 uses its default of `131072` characters.
-The configured value must be a positive integer. Use a LCore container image that
-supports this setting. This request size limit is separate from
-`models[].maxTokensForResponse`, which controls response tokens.
+size limit. When omitted, the default LCore image uses its built-in default of
+`1048576` characters (1 MiB). The configured value must be a positive
+integer. Custom or older LCore container images may not support this setting.
+This request size limit is separate from `models[].maxTokensForResponse`,
+which controls response tokens.
 
 ## Data collection
 
@@ -133,10 +134,30 @@ spec:
 
 ## Container images
 
-Each managed workload can use a custom image. Set `containerImage` under the
-relevant component: `rag`, `ogx`, `lcore`, `database`, `dataverseExporter`,
-or `okp`. When omitted, the operator uses its configured
-default image. For example, to configure LCORE container image:
+The operator deploys the following digest-pinned container images by default:
+
+| Component           | Default image                                                     |
+|---------------------|-------------------------------------------------------------------|
+| `rag`               | `quay.io/openstack-lightspeed/rag-content:os-docs-2026.1-ogx`     |
+| `ogx`               | `quay.io/lightspeed-core/lightspeed-stack:dev-latest`             |
+| `lcore`             | `quay.io/lightspeed-core/lightspeed-stack:dev-latest`             |
+| `database`          | `quay.io/sclorg/postgresql-16-c10s:latest`                        |
+| `dataverseExporter` | `quay.io/lightspeed-core/lightspeed-to-dataverse-exporter:latest` |
+| `okp`               | `registry.redhat.io/offline-knowledge-portal/rhokp-rhel9:latest`  |
+
+> [!NOTE]
+> Until GA, the default `ogx` and `lcore` images are digest-pinned to
+> `quay.io/lightspeed-core/lightspeed-stack:dev-latest` and updated
+> periodically to the latest verified image. The motivation behind using
+> `dev-latest` rather than versioned release images (e.g., `0.7.3`) is to
+> speed up the delivery of fixes from lightspeed-stack to OpenStack Lightspeed.
+
+Each managed workload can use a custom image — for example, to pick up a fix
+that is not yet present in the image deployed by the operator by default.
+To do so, set `containerImage` under the relevant component (`rag`, `ogx`,
+`lcore`, `database`, `dataverseExporter`, or `okp`). When omitted, the
+operator uses its configured default image. For example, to configure the
+`lcore` container image:
 
 ```yaml
 spec:

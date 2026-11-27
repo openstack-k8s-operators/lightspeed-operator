@@ -1,6 +1,6 @@
 #!/bin/bash
-export RELATED_IMAGE_LCORE_IMAGE_URL_DEFAULT="quay.io/lightspeed-core/lightspeed-stack:0.7.3"
-export RELATED_IMAGE_OGX_IMAGE_URL_DEFAULT="quay.io/lightspeed-core/lightspeed-stack:0.7.3"
+export RELATED_IMAGE_LCORE_IMAGE_URL_DEFAULT="quay.io/lightspeed-core/lightspeed-stack:dev-latest@sha256:7468e043c9b20bb9e2e1cc2af819d6d054db6886aa3655a48b911f04b1d71ea6"
+export RELATED_IMAGE_OGX_IMAGE_URL_DEFAULT="quay.io/lightspeed-core/lightspeed-stack:dev-latest@sha256:7468e043c9b20bb9e2e1cc2af819d6d054db6886aa3655a48b911f04b1d71ea6"
 export RELATED_IMAGE_EXPORTER_IMAGE_URL_DEFAULT="quay.io/lightspeed-core/lightspeed-to-dataverse-exporter:latest"
 export RELATED_IMAGE_POSTGRES_IMAGE_URL_DEFAULT="quay.io/sclorg/postgresql-16-c10s:latest"
 # TODO(lpiwowar): Replace this with a stable (non-alpha) image version once

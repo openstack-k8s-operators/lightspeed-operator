@@ -61,6 +61,10 @@ func modelProviderName(modelName string) string {
 	return fmt.Sprintf("provider-%s", modelName)
 }
 
+func providerModelID(modelName string) string {
+	return modelProviderName(modelName) + "/" + modelName
+}
+
 // buildProviders creates lcore providers from an OpenStackLightspeed instance.
 func buildProviders(instance *apiv1beta1.OpenStackLightspeed) []lcoreProvider {
 	providers := make([]lcoreProvider, 0, len(instance.Spec.Models))
@@ -128,9 +132,50 @@ func buildLCoreAuthenticationConfig(_ *common_helper.Helper, _ *apiv1beta1.OpenS
 }
 
 func buildLCoreInferenceConfig(_ *common_helper.Helper, instance *apiv1beta1.OpenStackLightspeed) map[string]interface{} {
+	providers := make([]interface{}, 0, len(instance.Spec.Models))
+	for _, model := range instance.Spec.Models {
+		providerID := modelProviderName(model.Name)
+
+		// TODO(lpiwowar): Update once migration to Pydantic AI is completed.
+		// The inference.providers section is needed at the moment to ensure that
+		// lightspeed-stack deployment does not fail with:
+		//
+		// DefaultModelNotAvailableError: Configured default model 'default-model'
+		// not found for provider 'provider-default-model' in the registry;
+		// aborting startup
+		//
+		// For now this section only mirrors the OGX-side registration to satisfy
+		// the startup gate above. It will become the source of inference
+		// configuration once the OGX -> pydantic-ai migration in lightspeed-stack
+		// is completed.
+		providers = append(providers, map[string]interface{}{
+			"type": "openai",
+			"id":   providerID,
+			// If false, LCore could query OGX before the sidecar finished
+			// booting; the empty discovery result would drop the default
+			// model from the catalog and trigger DefaultModelNotAvailableError.
+			"skip_model_discovery": true,
+			"allowed_models": []interface{}{
+				map[string]interface{}{
+					"name":              model.Name,
+					"provider_model_id": providerModelID(model.Name),
+					"model_type":        "llm",
+				},
+			},
+			"config": map[string]interface{}{
+				// OGX exposes an OpenAI-compatible API on its service port. Plus,
+				// OGX runs without authentication at the moment within the same pod
+				// as lightspeed-stack
+				"base_url": fmt.Sprintf("http://localhost:%d/v1", OGXContainerPort),
+				"api_key":  "not-needed", // #nosec G101 -- placeholder, not a credential
+			},
+		})
+	}
+
 	return map[string]interface{}{
 		"default_provider": modelProviderName(instance.Spec.DefaultModel),
 		"default_model":    instance.Spec.DefaultModel,
+		"providers":        providers,
 	}
 }
 
